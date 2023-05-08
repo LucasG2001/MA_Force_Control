@@ -1,0 +1,26 @@
+<library path="lib/libforce_control">
+  <class name="force_control/OperationalSpaceForceController" type="force_control::OperationalSpaceForceController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that tracks a cartesian path with a joint impedance controller that compensates coriolis torques. The torque commands are compared to measured torques in Console outputs.
+    </description>
+  </class>
+
+  <class name="force_control/TestController" type="force_control::TestController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      First prototype controller that reads out dynamic model Parameters and prints them out to console.
+    </description>
+  </class>
+
+  <class name="force_control/ForceActionController" type="force_control::ForceActionController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      This controller should be an operational space force controller compatible with moveit. That means it should take FollowJointTrajectory actions
+      as reference for the desired velocity/acceleration (w_dot) /position and calculate (and then feedforward) the desired  torque to a PID controller according
+      to the following control law:
+
+      Tau_desired = J^T*(Lambda * S_m * w_dot + S_f * F_contact + mu + p)
+
+      where S_i are selection matrices
+    </description>
+  </class>
+</library>
+
