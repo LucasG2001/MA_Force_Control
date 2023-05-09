@@ -43,7 +43,11 @@ namespace force_control {
         ROS_INFO("got a message");
         std::cout << "Thread ACTION CALLBACK ID: " << std::this_thread::get_id() << std::endl;
         additional_task = 1.0;
+        ros::Rate rate = 500;
         if (goal->trajectory.joint_names[0] == "0"){
+            //if this is the case we switch to hybrid force/motion control
+            //expect w in the joint velocity field 0-5
+            //expect F in the effort fields 0-5
             franka::RobotState state = franka_state_handle_->getRobotState();
             ROS_INFO("Start Force Action");
             q_desired = Eigen::Map<Eigen::Matrix<double, 7, 1>>(state.q.data());
@@ -69,13 +73,16 @@ namespace force_control {
             Sf = IDENTITY - Sm;
             std::array<double, 7> q_ref{};
             std::array<double, 7> dq_ref{};
+            bool goal_reached = false;
+            size_t trajectory_size = goal->trajectory.points.size();
             // Loop over the trajectory pointsxkil
-            for (size_t i = 0; i < goal->trajectory.points.size(); i++)
+            for (size_t i = 0; i < trajectory_size; i++)
             {
                 // Set the new reference orientation for amd position
                 const auto& point = goal->trajectory.points[i];
                 std::copy(point.positions.begin(), point.positions.end(), q_ref.begin());
                 q_desired = Eigen::Map<Eigen::Matrix<double, 7, 1>>(q_ref.data());
+                double q_tol = 0.01;
                 std::copy(point.velocities.begin(), point.velocities.end(), dq_ref.begin());
                 dq_desired = Eigen::Map<Eigen::Matrix<double, 7, 1>>(dq_ref.data());
                 w_des  = J * dq_desired;
@@ -85,7 +92,15 @@ namespace force_control {
                 if (i > 0) {
                     const auto& last_point = goal->trajectory.points[i - 1];
                     ros::Duration wait_time = point.time_from_start - last_point.time_from_start;
-                    wait_time.sleep();
+                    ros::Time loop_start = ros::Time::now();
+                    while(ros::Time::now() - loop_start < wait_time && !goal_reached) {
+                        goal_reached = true;
+                        for(size_t k = 0; k < 7; k++){
+                            bool temp = (std::abs(q_desired(k) - q(k)) < q_tol); //true if q_des_k - q_k < tol, else false
+                            goal_reached = goal_reached && temp; //if all joints reached the goal this is true (true&&tre&&true...)
+                        }
+                        rate.sleep();
+                    }
                 }
                 //wait for first point
                 ros::Duration callback_duration = ros::Time::now() - callback_start;
@@ -225,8 +240,8 @@ namespace force_control {
 
             auto stop = std::chrono::high_resolution_clock::now();
             auto time = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-            std::cout << "Time taken by update: "
-             << time.count() << " microseconds" << std::endl;
+            //std::cout << "Time taken by update: "
+            // << time.count() << " microseconds" << std::endl;
         }
 
     }

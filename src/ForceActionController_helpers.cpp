@@ -115,11 +115,11 @@ namespace force_control{
             }
             count += 1;
             translation_desired += dt * w_des.head(0);
-            if ((position(1)>= 0.3) && (direction_changed==false)){
+            if ((position(1)>= 0.5) && (direction_changed==false)){
                 w_des = -w_des;
                 direction_changed = true;
             }
-            else if ((position(1) <= -0.3) && (direction_changed == true)){
+            else if ((position(1) <= -0.5) && (direction_changed == true)){
                 direction_changed = false;
                 w_des = -w_des;
             }
