@@ -48,12 +48,12 @@ namespace force_control {
     };
 
     struct State{
-        Eigen::Matrix<double, 6, 1>  F;
-        Eigen::Matrix<double, 6, 1>  w;
-        Eigen::Matrix<double, 4, 4>  pose;
-        Eigen::Matrix<double, 6, 1>  r;
-        Eigen::Matrix<double, 7, 1>  q;
-        Eigen::Matrix<double, 7, 1>  dq;
+        Eigen::Matrix<double, 6, 1> F;
+        Eigen::Matrix<double, 6, 1> w;
+        Eigen::Matrix<double, 4, 4> pose;
+        Eigen::Matrix<double, 6, 1> r;
+        Eigen::Matrix<double, 7, 1> q;
+        Eigen::Matrix<double, 7, 1> dq;
         Eigen::Matrix<double, 7, 7> M; //Mass matrix
         Eigen::Matrix<double, 7, 7> M_inv; //inverse of M
         Eigen::Matrix<double, 7, 1> b; //coriolis vector
@@ -82,11 +82,14 @@ namespace force_control {
         void starting(const ros::Time&) override;
         void update(const ros::Time&, const ros::Duration& period) override;
         void action_callback(const control_msgs::FollowJointTrajectoryGoalConstPtr & goal, ActionServer* server);
-        void update_state(State state, Reference reference);
+        void update_state();
+        Eigen::Matrix<double, 6, 1> get_pose_error();
+        void get_dynamic_model_parameters();
+        void compute_task_space_matrices();
+        Eigen::Matrix<double, 7, 1> add_nullspace_torque(Eigen::Matrix<double, 7, 7> Kp, Eigen::Matrix<double, 7, 7> Kd);
+        void check_movement_and_log(bool log);
 
         /* ToDO: Setup Action Server for FollowJoinTrajectory Action to generate reference goals for the controller */
-        Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,6); //desired contact force
-        Eigen::Matrix<double, 6, 1>  w_dot_des = Eigen::MatrixXd::Zero(6,6); //desired
         Eigen::Matrix<double, 6, 6> Lambda; //Lambda, task space dynamics Matrix
         Eigen::Matrix<double, 6, 6> Sm = Eigen::MatrixXd::Identity(6,6); //task space selection matrix for positions and rotation
         Eigen::Matrix<double, 6, 6> Sf = Eigen::MatrixXd::Zero(6,6); ; //task space selection matrix for forces
@@ -102,18 +105,24 @@ namespace force_control {
         Eigen::Matrix<double, 6, 7> J_last; //EE-Jacobian of last control loop iteration(to calculate derivative)
         Eigen::Matrix<double, 7, 6> J_T; //transposed Jacobian
         Eigen::MatrixXd pinv_J_T;
-        /** ToDo: Find way to compute Jacobian derivative, at the moment it is numerically approximated by finite difference**/
-        Eigen::Matrix<double, 6, 7> dJ; //derivative of Jacobian
+        Eigen::MatrixXd pinv_J;
+        Eigen::Matrix<double, 6, 7> dJ = Eigen::MatrixXd::Zero(6,7); //derivative of Jacobian
         Eigen::Matrix<double, 7, 1> tau_des; //desired joint torques (will be commanded)
-        Eigen::Matrix<double, 4, 4> pose; //current EE-pose
+        Eigen::Affine3d current_pose; //current EE-pose
+        Eigen::Quaterniond orientation;
+        Eigen::Vector3d position;
+        Eigen::Matrix<double, 6, 1> w; //velocity of EE
+
+        Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,6); //desired contact force
+        Eigen::Matrix<double, 6, 1>  w_dot_des = Eigen::MatrixXd::Zero(6,6); //desired
         Eigen::Affine3d pose_desired; //desired pose
         Eigen::Quaterniond orientation_desired;
         Eigen::Vector3d translation_desired;
-        Eigen::Matrix<double, 6, 1> w; //velocity of EE
+
         Eigen::Matrix<double, 6, 1> w_des = Eigen::MatrixXd::Zero(6,6); //desired velocity of EE
         Eigen::Matrix<double, 6, 1> F_last = Eigen::MatrixXd::Zero(6,1);; //previous F value
         Eigen::Matrix<double, 6, 1> dF_last = Eigen::MatrixXd::Zero(6,1);; //previous F value
-        std::ofstream force_log;
+
         long int count = 0;
     private:
         // Saturation
@@ -124,6 +133,7 @@ namespace force_control {
         std::unique_ptr<franka_hw::FrankaModelHandle> model_handle_;
         std::unique_ptr<franka_hw::FrankaStateHandle> franka_state_handle_;
         std::vector<hardware_interface::JointHandle> joint_handles_;
+        franka::RobotState robot_state_;
 
         Eigen::Matrix<double, 7, 1> saturateTorqueRate(
                 const Eigen::Matrix<double, 7, 1>& tau_d_calculated,
@@ -153,6 +163,7 @@ namespace force_control {
         double beta = 0.01; //filter rate for dF
         const double dt = 0.001; //time between controller updates
         franka_hw::TriggerRate rate_trigger_{1/dt};
+        State current_state;
 
 
 
