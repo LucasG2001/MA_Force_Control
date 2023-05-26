@@ -2,11 +2,11 @@
 // Created by lucas on 09.05.23.
 //
 #include <force_control/force_action_controller.h>
-#include <pluginlib/class_list_macros.h>
 #include <chrono>
 #include <fstream>
 #include <functional>
-#include <thread>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 namespace force_control{
 
@@ -34,14 +34,40 @@ namespace force_control{
 
         M_pinv_ = Eigen::MatrixXd(svd.matrixV() * S_.transpose() * svd.matrixU().transpose());
     }
+    KalmanFilter::KalmanFilter(double transition_matrix, double input_map, double observer_matrix, double sigma, double epsilon, double x_init) {
+        F = transition_matrix;
+        B = input_map;
+        H = observer_matrix;
+        Q = sigma*sigma;
+        R = epsilon * epsilon;
+        P = Q;
+        x = x_init;
+    }
+
+    double KalmanFilter::correct(double measurement){
+        z = measurement;
+        double K = 0.5 * P*H/(H*P*H + R);
+        x =  x + K*(z-x);
+        P = (1 - K*H) * P;
+        return x;
+    }
+
+    double KalmanFilter::predict(double input){
+        x = 0.5 * (F * x + B * input) + 0.5 * x;
+        P = F*P*F + Q;
+        return x;
+    }
 
     void ForceActionController::update_state() {
         robot_state_ = franka_state_handle_->getRobotState();
         q_dot = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state_.dq.data ());
+        dq_filtered = 0.1 * q_dot + 0.9 * dq_filtered;
         q = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state_.q.data());
+        dtau = 0.01 * Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state_.dtau_J.data()) + 0.99 * dtau;
         current_pose = Eigen::Matrix4d::Map(robot_state_.O_T_EE.data());
         position = current_pose.translation();
         orientation =current_pose.rotation();
+        attached_mass = robot_state_.m_load;
 
     }
 
@@ -97,34 +123,29 @@ namespace force_control{
         Eigen::Matrix<double, 7, 7> N = Eigen::MatrixXd::Identity(7, 7) - J_T * pinv_J_T;
         //set second task torque
         //dq_desired = pinv_J * w_des; //should least-square minimize q_dot
-        Eigen::Matrix<double, 7, 1> ddq = 0.1 * Kp * (q_desired - q) + 0.4 * Kd *(dq_desired - q_dot);
+        Eigen::Matrix<double, 7, 1> ddq = 0.05 * Kp * (q_desired - q) * additional_task + 0.7 * Kd *(dq_desired - dq_filtered);
         Eigen::Matrix<double, 7, 1> tau_nullspace = M * ddq;
 
         return N * tau_nullspace;
     }
 
-    void ForceActionController::check_movement_and_log(bool log) {
-        if(additional_task == 0){
-            if(log) {
-                std::ofstream stream;
-                stream.open("/home/lucas/Desktop/F.txt",std::ios::app);
-                if (stream.is_open()){
-                    stream << count << " " << (robot_state_.O_F_ext_hat_K) << "\n";
-                }
-                stream.close();
+    void ForceActionController::check_movement_and_log(const Eigen::Matrix<double, 1, 6>& data, double F_cmd) {
+            std::ofstream stream;
+            stream.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt",std::ios::app);
+            if (stream.is_open()){
+                stream << count << "," << data << "," << -F_contact_des(2) << "," <<  F_cmd << "," << kalman_ext_force << "," << robot_state_.O_F_ext_hat_K << "\n";
             }
-            count += 1;
-            translation_desired += dt * w_des.head(0);
-            if ((position(1)>= 0.5) && (direction_changed==false)){
-                w_des = -w_des;
-                direction_changed = true;
-            }
-            else if ((position(1) <= -0.5) && (direction_changed == true)){
-                direction_changed = false;
-                w_des = -w_des;
-            }
-        }
+            stream.close();
+    }
 
+    void ForceActionController::log_velocity_and_orientation(const Eigen::MatrixXd& w, const Eigen::MatrixXd& error){
+        std::ofstream stream;
+        stream.open("/home/lucas/Desktop/MA/Force_Data/w_forcing.txt",std::ios::app);
+        if (stream.is_open()){
+            stream << count << "," << w.block(0,0,3,1).transpose() << ","
+            << error.block(3, 0, 3, 1).transpose() << "," << w_des(1) <<"\n";
+        }
+        stream.close();
     }
 
     Eigen::Matrix<double, 7, 1> ForceActionController::saturateTorqueRate(

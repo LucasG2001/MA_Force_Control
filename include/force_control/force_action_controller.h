@@ -63,6 +63,25 @@ namespace force_control {
         Eigen::Matrix<double, 7, 6> J_T; //transposed Jacobian
     };
 
+    class KalmanFilter {
+    public:
+        KalmanFilter(double transition_matrix, double input_map, double observer_matrix, double sigma, double epsilon, double x_init);
+
+        double F; //state transition matrix
+        double B; //iput Matrix
+        double w; //stochasticity of x
+        double H; // observer matrix
+        double v; //stochasticity of z
+        double x;
+        double z;
+        double P; // corrected corr
+        double R; // v corr
+        double Q; //w noise
+
+        double correct(double measurement);
+        double predict(double input);
+    };
+
     typedef actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> ActionServer;
     //void action_callback(const control_msgs::FollowJointTrajectoryGoalConstPtr & goal, ActionServer* server);
 
@@ -73,10 +92,12 @@ namespace force_control {
     public:
         ForceActionController() :
             node_handle_("force_action_controller"),
+            kalman_filter(1, -1, 1, 0.2, 0.5, 0),
             action_server_(node_handle_, "follow_joint_trajectory",boost::bind(&ForceActionController::action_callback, this, _1, &action_server_), false)
         {
             action_server_.start();
         }
+
 
         bool init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& node_handle) override;
         void starting(const ros::Time&) override;
@@ -87,7 +108,8 @@ namespace force_control {
         void get_dynamic_model_parameters();
         void compute_task_space_matrices();
         Eigen::Matrix<double, 7, 1> add_nullspace_torque(Eigen::Matrix<double, 7, 7> Kp, Eigen::Matrix<double, 7, 7> Kd);
-        void check_movement_and_log(bool log);
+        void check_movement_and_log(const Eigen::Matrix<double, 1, 6>& data, double F_cmd);
+        void log_velocity_and_orientation(const Eigen::MatrixXd& w, const Eigen::MatrixXd& error);
 
         /* ToDO: Setup Action Server for FollowJoinTrajectory Action to generate reference goals for the controller */
         Eigen::Matrix<double, 6, 6> Lambda; //Lambda, task space dynamics Matrix
@@ -120,7 +142,7 @@ namespace force_control {
         Eigen::Vector3d translation_desired;
 
         Eigen::Matrix<double, 6, 1> w_des = Eigen::MatrixXd::Zero(6,6); //desired velocity of EE
-        Eigen::Matrix<double, 6, 1> F_last = Eigen::MatrixXd::Zero(6,1);; //previous F value
+        Eigen::Matrix<double, 6, 1> delta_F_last = Eigen::MatrixXd::Zero(6, 1);; //previous F value
         Eigen::Matrix<double, 6, 1> dF_last = Eigen::MatrixXd::Zero(6,1);; //previous F value
 
         long int count = 0;
@@ -128,6 +150,7 @@ namespace force_control {
         // Saturation
         ros::NodeHandle node_handle_;
         ActionServer action_server_;
+        KalmanFilter kalman_filter;
         franka_hw::FrankaStateInterface* franka_state_interface_;
         franka_hw::FrankaModelInterface* model_interface_;
         std::unique_ptr<franka_hw::FrankaModelHandle> model_handle_;
@@ -140,17 +163,18 @@ namespace force_control {
                 const Eigen::Matrix<double, 7, 1>& tau_J_d);
 
 
-        static constexpr double kDeltaTauMax{50};
+        static constexpr double kDeltaTauMax{1};
 
         Eigen::Matrix<double, 7, 1> k_gains_;
         Eigen::Matrix<double, 7, 1> d_gains_;
         std::vector<double> i_gains_;
-        Eigen::Matrix<double, 7, 1> tau_bias = Eigen::MatrixXd::Zero(7,1);
-        Eigen::Matrix<double, 6, 1> F_bias = Eigen::MatrixXd::Zero(6,1);
+        Eigen::Matrix<double, 6, 1> F_cmd = Eigen::MatrixXd::Zero(6,1);
+        double kalman_ext_force = 0;
+        Eigen::Matrix<double, 6, 1> F_last = Eigen::MatrixXd::Zero(6,1);
         Eigen::Matrix<double, 6, 1> delta_F = Eigen::MatrixXd::Zero(6,1);
         Eigen::Matrix<double, 6, 1> error_F = Eigen::MatrixXd::Zero(6,1);
-        Eigen::Matrix<double, 7, 1> Tau_err = Eigen::MatrixXd::Zero(7,1);
-        std::array<double, 7> dq_filtered_;
+        Eigen::Matrix<double, 7, 1> dtau = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> dq_filtered = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> dq_desired = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> q_desired = Eigen::MatrixXd::Zero(7,1);
         std::array<double, 16> initial_pose_;
@@ -158,18 +182,15 @@ namespace force_control {
         std::array<double, 16> F_T_EE; //end effector in flange frame
         std::array<double, 16> EE_T_K; //stiffness frame in EE frame
         double additional_task = 1.0;
-        bool direction_changed = false;
-        double alpha = 0.001; //filter rate for F
-        double beta = 0.01; //filter rate for dF
         const double dt = 0.001; //time between controller updates
         franka_hw::TriggerRate rate_trigger_{1/dt};
+        franka_hw::TriggerRate log_rate_{100};
         State current_state;
-
-
-
-
-
+        bool started_force_action = true;
+        double attached_mass = 0;
     };
+
+
 
 }  // namespace force_control
 // force_control

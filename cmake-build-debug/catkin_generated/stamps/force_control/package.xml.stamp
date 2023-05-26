@@ -35,6 +35,7 @@
   <depend>urdf</depend>
   <depend>visualization_msgs</depend>
   <depend>actionlib</depend>
+  <depend>spdlog</depend>
 
   <exec_depend>franka_control</exec_depend>
   <exec_depend>franka_description</exec_depend>

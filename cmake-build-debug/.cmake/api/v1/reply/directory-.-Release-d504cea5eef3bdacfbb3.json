@@ -1,0 +1,895 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"_install",
+			"install",
+			"catkin_generate_environment",
+			"include",
+			"find_package",
+			"catkin_install_python",
+			"add_message_files",
+			"generate_messages",
+			"generate_dynamic_reconfigure_options",
+			"dynreconf_called",
+			"_catkin_package",
+			"catkin_package"
+		],
+		"files" : 
+		[
+			"/opt/ros/noetic/share/catkin/cmake/custom_install.cmake",
+			"/opt/ros/noetic/share/catkin/cmake/catkin_generate_environment.cmake",
+			"/opt/ros/noetic/share/catkin/cmake/all.cmake",
+			"/opt/ros/noetic/share/catkin/cmake/catkinConfig.cmake",
+			"CMakeLists.txt",
+			"/opt/ros/noetic/share/catkin/cmake/catkin_install_python.cmake",
+			"/opt/ros/noetic/share/genmsg/cmake/genmsg-extras.cmake",
+			"cmake-build-debug/cmake/force_control-genmsg.cmake",
+			"/opt/ros/noetic/share/dynamic_reconfigure/cmake/dynamic_reconfigure-macros.cmake",
+			"/opt/ros/noetic/share/catkin/cmake/catkin_package.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 4
+			},
+			{
+				"command" : 4,
+				"file" : 4,
+				"line" : 8,
+				"parent" : 0
+			},
+			{
+				"file" : 3,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 20,
+				"parent" : 2
+			},
+			{
+				"file" : 2,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 190,
+				"parent" : 4
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 85,
+				"parent" : 5
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 6
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 97,
+				"parent" : 5
+			},
+			{
+				"command" : 1,
+				"file" : 5,
+				"line" : 59,
+				"parent" : 8
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 9
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 115,
+				"parent" : 5
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 11
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 128,
+				"parent" : 5
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 13
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 128,
+				"parent" : 5
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 15
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 128,
+				"parent" : 5
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 17
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 140,
+				"parent" : 5
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 19
+			},
+			{
+				"command" : 6,
+				"file" : 4,
+				"line" : 37,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 6,
+				"line" : 127,
+				"parent" : 21
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 22
+			},
+			{
+				"command" : 7,
+				"file" : 4,
+				"line" : 41,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 6,
+				"line" : 228,
+				"parent" : 24
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 25
+			},
+			{
+				"command" : 3,
+				"file" : 6,
+				"line" : 307,
+				"parent" : 24
+			},
+			{
+				"file" : 7,
+				"parent" : 27
+			},
+			{
+				"command" : 1,
+				"file" : 7,
+				"line" : 198,
+				"parent" : 28
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 29
+			},
+			{
+				"command" : 1,
+				"file" : 7,
+				"line" : 206,
+				"parent" : 28
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 31
+			},
+			{
+				"command" : 1,
+				"file" : 7,
+				"line" : 214,
+				"parent" : 28
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 33
+			},
+			{
+				"command" : 1,
+				"file" : 7,
+				"line" : 222,
+				"parent" : 28
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 35
+			},
+			{
+				"command" : 1,
+				"file" : 7,
+				"line" : 229,
+				"parent" : 28
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 37
+			},
+			{
+				"command" : 1,
+				"file" : 7,
+				"line" : 231,
+				"parent" : 28
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 39
+			},
+			{
+				"command" : 8,
+				"file" : 4,
+				"line" : 43,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 8,
+				"line" : 79,
+				"parent" : 41
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 42
+			},
+			{
+				"command" : 1,
+				"file" : 8,
+				"line" : 79,
+				"parent" : 41
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 44
+			},
+			{
+				"command" : 1,
+				"file" : 8,
+				"line" : 79,
+				"parent" : 41
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 46
+			},
+			{
+				"command" : 1,
+				"file" : 8,
+				"line" : 79,
+				"parent" : 41
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 48
+			},
+			{
+				"command" : 1,
+				"file" : 8,
+				"line" : 79,
+				"parent" : 41
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 50
+			},
+			{
+				"command" : 9,
+				"file" : 8,
+				"line" : 89,
+				"parent" : 41
+			},
+			{
+				"command" : 1,
+				"file" : 8,
+				"line" : 108,
+				"parent" : 52
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 53
+			},
+			{
+				"command" : 1,
+				"file" : 8,
+				"line" : 129,
+				"parent" : 52
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 55
+			},
+			{
+				"command" : 1,
+				"file" : 8,
+				"line" : 130,
+				"parent" : 52
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 57
+			},
+			{
+				"command" : 11,
+				"file" : 4,
+				"line" : 51,
+				"parent" : 0
+			},
+			{
+				"command" : 10,
+				"file" : 9,
+				"line" : 102,
+				"parent" : 59
+			},
+			{
+				"command" : 1,
+				"file" : 9,
+				"line" : 450,
+				"parent" : 60
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 61
+			},
+			{
+				"command" : 1,
+				"file" : 9,
+				"line" : 496,
+				"parent" : 60
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 63
+			},
+			{
+				"command" : 1,
+				"file" : 9,
+				"line" : 521,
+				"parent" : 60
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 65
+			},
+			{
+				"command" : 1,
+				"file" : 9,
+				"line" : 529,
+				"parent" : 60
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 67
+			},
+			{
+				"command" : 1,
+				"file" : 4,
+				"line" : 108,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 69
+			},
+			{
+				"command" : 1,
+				"file" : 4,
+				"line" : 113,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 71
+			},
+			{
+				"command" : 1,
+				"file" : 4,
+				"line" : 116,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 73
+			},
+			{
+				"command" : 1,
+				"file" : 4,
+				"line" : 119,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 75
+			},
+			{
+				"command" : 1,
+				"file" : 4,
+				"line" : 122,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 77
+			},
+			{
+				"command" : 5,
+				"file" : 4,
+				"line" : 125,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 5,
+				"line" : 59,
+				"parent" : 79
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 80
+			},
+			{
+				"command" : 1,
+				"file" : 5,
+				"line" : 59,
+				"parent" : 79
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 82
+			},
+			{
+				"command" : 1,
+				"file" : 5,
+				"line" : 59,
+				"parent" : 79
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 84
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 7,
+			"component" : "Unspecified",
+			"type" : "code"
+		},
+		{
+			"backtrace" : 10,
+			"component" : "Unspecified",
+			"destination" : "/usr/local",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/_setup_util.py"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 12,
+			"component" : "Unspecified",
+			"destination" : "/usr/local",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/env.sh"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 14,
+			"component" : "Unspecified",
+			"destination" : "/usr/local",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/setup.bash",
+				"cmake-build-debug/catkin_generated/installspace/local_setup.bash"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 16,
+			"component" : "Unspecified",
+			"destination" : "/usr/local",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/setup.sh",
+				"cmake-build-debug/catkin_generated/installspace/local_setup.sh"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 18,
+			"component" : "Unspecified",
+			"destination" : "/usr/local",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/setup.zsh",
+				"cmake-build-debug/catkin_generated/installspace/local_setup.zsh"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 20,
+			"component" : "Unspecified",
+			"destination" : "/usr/local",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/.rosinstall"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 23,
+			"component" : "Unspecified",
+			"destination" : "share/force_control/msg",
+			"paths" : 
+			[
+				"msg/JointTorqueComparison.msg"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 26,
+			"component" : "Unspecified",
+			"destination" : "share/force_control/cmake",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/force_control-msg-paths.cmake"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 30,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/include/force_control"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 32,
+			"component" : "Unspecified",
+			"destination" : "share/roseus/ros",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/share/roseus/ros/force_control"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 34,
+			"component" : "Unspecified",
+			"destination" : "share/common-lisp/ros",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/share/common-lisp/ros/force_control"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 36,
+			"component" : "Unspecified",
+			"destination" : "share/gennodejs/ros",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/share/gennodejs/ros/force_control"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 38,
+			"component" : "Unspecified",
+			"type" : "code"
+		},
+		{
+			"backtrace" : 40,
+			"component" : "Unspecified",
+			"destination" : "lib/python3/dist-packages",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/lib/python3/dist-packages/force_control"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 43,
+			"component" : "Unspecified",
+			"destination" : "include/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/include/force_control/compliance_paramConfig.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 45,
+			"component" : "Unspecified",
+			"destination" : "include/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/include/force_control/desired_mass_paramConfig.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 47,
+			"component" : "Unspecified",
+			"destination" : "include/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/include/force_control/dual_arm_compliance_paramConfig.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 49,
+			"component" : "Unspecified",
+			"destination" : "include/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/include/force_control/teleop_paramConfig.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 51,
+			"component" : "Unspecified",
+			"destination" : "include/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/include/force_control/teleop_gripper_paramConfig.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 54,
+			"component" : "Unspecified",
+			"destination" : "lib/python3/dist-packages/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/lib/python3/dist-packages/force_control/__init__.py"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 56,
+			"component" : "Unspecified",
+			"type" : "code"
+		},
+		{
+			"backtrace" : 58,
+			"component" : "Unspecified",
+			"destination" : "lib/python3/dist-packages/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/devel/lib/python3/dist-packages/force_control/cfg"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 62,
+			"component" : "Unspecified",
+			"destination" : "lib/pkgconfig",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/force_control.pc"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 64,
+			"component" : "Unspecified",
+			"destination" : "share/force_control/cmake",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/force_control-msg-extras.cmake"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 66,
+			"component" : "Unspecified",
+			"destination" : "share/force_control/cmake",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/force_controlConfig.cmake",
+				"cmake-build-debug/catkin_generated/installspace/force_controlConfig-version.cmake"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 68,
+			"component" : "Unspecified",
+			"destination" : "share/force_control",
+			"paths" : 
+			[
+				"package.xml"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 70,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"devel/lib/libforce_control.so"
+			],
+			"targetId" : "force_control::@6890427a1f51a3e7e1df",
+			"targetIndex" : 25,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 72,
+			"component" : "Unspecified",
+			"destination" : "include/force_control",
+			"paths" : 
+			[
+				{
+					"from" : "include/force_control",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 74,
+			"component" : "Unspecified",
+			"destination" : "share/force_control",
+			"paths" : 
+			[
+				"launch"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 76,
+			"component" : "Unspecified",
+			"destination" : "share/force_control",
+			"paths" : 
+			[
+				"config"
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 78,
+			"component" : "Unspecified",
+			"destination" : "share/force_control",
+			"paths" : 
+			[
+				"force_control_plugin.xml"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 81,
+			"component" : "Unspecified",
+			"destination" : "lib/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/interactive_marker.py"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 83,
+			"component" : "Unspecified",
+			"destination" : "lib/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/move_to_start.py"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 85,
+			"component" : "Unspecified",
+			"destination" : "lib/force_control",
+			"paths" : 
+			[
+				"cmake-build-debug/catkin_generated/installspace/dual_arm_interactive_marker.py"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	}
+}

@@ -69,6 +69,7 @@ catkin_package(
     urdf
     visualization_msgs
         actionlib
+        spdlog
 
   DEPENDS Franka
 )
@@ -92,7 +93,7 @@ add_dependencies(force_control
 target_link_libraries(force_control PUBLIC
   ${Franka_LIBRARIES}
   ${catkin_LIBRARIES}
-)
+        )
 
 target_include_directories(force_control SYSTEM PUBLIC
   ${EIGEN3_INCLUDE_DIRS}
