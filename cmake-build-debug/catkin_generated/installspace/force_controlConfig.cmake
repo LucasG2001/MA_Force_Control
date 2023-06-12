@@ -91,9 +91,9 @@ endif()
 # flag project as catkin-based to distinguish if a find_package()-ed project is a catkin project
 set(force_control_FOUND_CATKIN_PROJECT TRUE)
 
-if(NOT "include;/opt/ros/noetic/include " STREQUAL " ")
+if(NOT "include;/usr/include " STREQUAL " ")
   set(force_control_INCLUDE_DIRS "")
-  set(_include_dirs "include;/opt/ros/noetic/include")
+  set(_include_dirs "include;/usr/include")
   if(NOT "https://github.com/frankaemika/franka_ros/issues " STREQUAL " ")
     set(_report "Check the issue tracker 'https://github.com/frankaemika/franka_ros/issues' and consider creating a ticket if the problem has not been reported yet.")
   elseif(NOT "http://wiki.ros.org/force_control " STREQUAL " ")
@@ -116,7 +116,7 @@ if(NOT "include;/opt/ros/noetic/include " STREQUAL " ")
   endforeach()
 endif()
 
-set(libraries "force_control;/opt/ros/noetic/lib/x86_64-linux-gnu/libfranka.so.0.9.2")
+set(libraries "force_control;/usr/lib/libfranka.so.0.10.0")
 foreach(library ${libraries})
   # keep build configuration keywords, target names and absolute libraries as-is
   if("${library}" MATCHES "^(debug|optimized|general)$")

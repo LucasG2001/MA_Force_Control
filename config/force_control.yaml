@@ -86,10 +86,6 @@ force_action_controller:
         - 20.0
         - 20.0
         - 10.0
-    radius: 0.1
-    acceleration_time: 2.0
-    vel_max: 0.7
-    publish_rate: 500.0
-    coriolis_factor: 1.0
+
 
 

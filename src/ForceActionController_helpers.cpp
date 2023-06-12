@@ -44,16 +44,16 @@ namespace force_control{
         x = x_init;
     }
 
-    double KalmanFilter::correct(double measurement){
+    double KalmanFilter::correct(double measurement, const Eigen::Matrix<double, 6, 6>& Lambda, const Eigen::Matrix<double, 6, 1>& w_dot){
         z = measurement;
-        double K = 0.5 * P*H/(H*P*H + R);
+        double K = P*H/(H*P*H + R);
         x =  x + K*(z-x);
         P = (1 - K*H) * P;
         return x;
     }
 
-    double KalmanFilter::predict(double input){
-        x = 0.5 * (F * x + B * input) + 0.5 * x;
+    double KalmanFilter::predict(double input, double timestep){
+        x = F * x + B * input;
         P = F*P*F + Q;
         return x;
     }
@@ -62,14 +62,34 @@ namespace force_control{
         robot_state_ = franka_state_handle_->getRobotState();
         q_dot = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state_.dq.data ());
         dq_filtered = 0.1 * q_dot + 0.9 * dq_filtered;
+        //get current EE-velocity
+        w = J * q_dot;
         q = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state_.q.data());
         dtau = 0.01 * Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state_.dtau_J.data()) + 0.99 * dtau;
         current_pose = Eigen::Matrix4d::Map(robot_state_.O_T_EE.data());
         position = current_pose.translation();
         orientation =current_pose.rotation();
-        attached_mass = robot_state_.m_load;
 
     }
+
+    void ForceActionController::update_forces() {
+        //observed force
+        beta_observer = b + g - M_dot * q_dot;
+        gamma_observer += ((tau_des + g) - beta_observer + r_observer) * dt;
+        r_observer = K_observer * (M*q_dot - gamma_observer);
+        tau_observed = r_observer + J_T * F_cmd ;
+    }
+
+    void ForceActionController::update_observer() {
+        F_ext = Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state_.O_F_ext_hat_K.data()) * 0.01 + 0.99 * F_last;
+        F_last = F_ext;
+        delta_F =  (F_contact_des + F_ext); //F_ext shows in the negative direction of F_contact desired
+        error_F += dt * delta_F;
+        Eigen::Matrix<double, 6, 1> dF_error = (delta_F - delta_F_last) / dt * 0.1 + dF_last * 0.9; //filtered Force error derivative estimate
+        dF_last = dF_error;
+        delta_F_last = delta_F;
+    }
+
 
     Eigen::Matrix<double, 6, 1> ForceActionController::get_pose_error(){
         // position error
@@ -96,6 +116,7 @@ namespace force_control{
                 model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
 
         // set dynamic model parameters into Eigen::Matrices
+        M_dot = (Eigen::Map<Eigen::Matrix<double, 7, 7>>(mass.data()) - M)/dt;
         M = Eigen::Map<Eigen::Matrix<double, 7, 7>>(mass.data());
         b = Eigen::Map<Eigen::Matrix<double, 7, 1>>(coriolis.data());
         g = Eigen::Map<Eigen::Matrix<double, 7, 1>>(gravity.data());
@@ -123,17 +144,17 @@ namespace force_control{
         Eigen::Matrix<double, 7, 7> N = Eigen::MatrixXd::Identity(7, 7) - J_T * pinv_J_T;
         //set second task torque
         //dq_desired = pinv_J * w_des; //should least-square minimize q_dot
-        Eigen::Matrix<double, 7, 1> ddq = 0.05 * Kp * (q_desired - q) * additional_task + 0.7 * Kd *(dq_desired - dq_filtered);
+        Eigen::Matrix<double, 7, 1> ddq = 0.05 * Kp * (q_desired - q) * control_mode + 0.05 * Kd * (-q_dot); //set velocity to 0 or dq_des
         Eigen::Matrix<double, 7, 1> tau_nullspace = M * ddq;
 
         return N * tau_nullspace;
     }
 
-    void ForceActionController::check_movement_and_log(const Eigen::Matrix<double, 1, 6>& data, double F_cmd) {
+    void ForceActionController::check_movement_and_log(const Eigen::Matrix<double, 1, 6>& data, double commanded_force) {
             std::ofstream stream;
             stream.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt",std::ios::app);
             if (stream.is_open()){
-                stream << count << "," << data << "," << -F_contact_des(2) << "," <<  F_cmd << "," << kalman_ext_force << "," << robot_state_.O_F_ext_hat_K << "\n";
+                stream << count << "," << data << "," << -F_contact_des(2) << "," <<  commanded_force << "," << kalman_ext_force << "," << robot_state_.O_F_ext_hat_K << "\n";
             }
             stream.close();
     }
@@ -148,6 +169,7 @@ namespace force_control{
         stream.close();
     }
 
+    //saturates torque rate at 1000 Nm/s (setting kdeltaTauMax accordingly as dt*1000)
     Eigen::Matrix<double, 7, 1> ForceActionController::saturateTorqueRate(
             const Eigen::Matrix<double, 7, 1>& tau_d_calculated,
             const Eigen::Matrix<double, 7, 1>& tau_J_d) {  // NOLINT (readability-identifier-naming)
@@ -157,6 +179,21 @@ namespace force_control{
             tau_d_saturated[i] = tau_J_d[i] + std::max(std::min(difference, kDeltaTauMax), -kDeltaTauMax);
         }
         return tau_d_saturated;
+    }
+
+    // updates friction torque estimates according to model from friction parameters taken from https://inria.hal.science/hal-02265294/document
+    void ForceActionController::update_friction_torque() {
+        for(int i = 0; i<7; i++){
+            /**
+            double a = phi1[i];
+            double b = phi2[i];
+            double c = phi3[i];
+            double term1 = 1.0 + exp(-b * (q_dot(i,0)*1 + c));
+            double term2 = 1.0 + exp(-b * c);
+             **/
+            double sign = q_dot(i,0)/std::abs(q_dot(i,0));
+            friction_torques(i, 0) = fv[i] * q_dot(i,0) + fc[i] * sign + fo[i];
+        }
     }
 
 } //namespace force control

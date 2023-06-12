@@ -1093,11 +1093,11 @@
 		},
 		{
 			"isExternal" : true,
-			"path" : "/opt/ros/noetic/lib/x86_64-linux-gnu/cmake/Franka/FrankaConfigVersion.cmake"
+			"path" : "/usr/lib/cmake/Franka/FrankaConfigVersion.cmake"
 		},
 		{
 			"isExternal" : true,
-			"path" : "/opt/ros/noetic/lib/x86_64-linux-gnu/cmake/Franka/FrankaConfig.cmake"
+			"path" : "/usr/lib/cmake/Franka/FrankaConfig.cmake"
 		},
 		{
 			"isCMake" : true,
@@ -1131,11 +1131,11 @@
 		},
 		{
 			"isExternal" : true,
-			"path" : "/opt/ros/noetic/lib/x86_64-linux-gnu/cmake/Franka/FrankaTargets.cmake"
+			"path" : "/usr/lib/cmake/Franka/FrankaTargets.cmake"
 		},
 		{
 			"isExternal" : true,
-			"path" : "/opt/ros/noetic/lib/x86_64-linux-gnu/cmake/Franka/FrankaTargets-none.cmake"
+			"path" : "/usr/lib/cmake/Franka/FrankaTargets-release.cmake"
 		},
 		{
 			"isGenerated" : true,
