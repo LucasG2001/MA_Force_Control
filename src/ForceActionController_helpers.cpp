@@ -61,7 +61,6 @@ namespace force_control{
     void ForceActionController::update_state() {
         robot_state_ = franka_state_handle_->getRobotState();
         q_dot = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state_.dq.data ());
-        dq_filtered = 0.1 * q_dot + 0.9 * dq_filtered;
         //get current EE-velocity
         w = J * q_dot;
         q = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state_.q.data());
@@ -125,7 +124,7 @@ namespace force_control{
         //get current timestamp and compute derivative of Jacobian numerically
         J = Eigen::Map<Eigen::Matrix<double, 6, 7>>(ee_zero_Jac.data());
         J_T = J.transpose();
-        dJ = (J - J_last)/dt;
+        dJ = (J - J_last)/dt;  I_error.setZero();
         J_last = J;
         //get pseudo inverse jacobian
         force_control::pseudoInverse(J_T, pinv_J_T);
@@ -140,11 +139,12 @@ namespace force_control{
 
     Eigen::Matrix<double, 7, 1> ForceActionController::add_nullspace_torque(Eigen::Matrix<double, 7, 7> Kp, Eigen::Matrix<double, 7, 7> Kd){
         //add a task in nullspace. For operational space torque control we construct a Matrix N, which maps a torque tau_n to the nullspace of
-        //compute nullspace projection matrix
-        Eigen::Matrix<double, 7, 7> N = Eigen::MatrixXd::Identity(7, 7) - J_T * pinv_J_T;
+        //compute generalized nullspace projection matrix
+        Eigen::Matrix<double, 6, 7> ginv_J_T = (J*M_inv*J_T).inverse()*J*M_inv;
+        Eigen::Matrix<double, 7, 7> N = Eigen::MatrixXd::Identity(7, 7) - J_T * ginv_J_T;
         //set second task torque
         //dq_desired = pinv_J * w_des; //should least-square minimize q_dot
-        Eigen::Matrix<double, 7, 1> ddq = 0.05 * Kp * (q_desired - q) * control_mode + 0.05 * Kd * (-q_dot); //set velocity to 0 or dq_des
+        Eigen::Matrix<double, 7, 1> ddq =  0.1 * Kp * (q_desired - q) + 0.1 * Kd * (- q_dot); //set velocity to 0 or dq_des
         Eigen::Matrix<double, 7, 1> tau_nullspace = M * ddq;
 
         return N * tau_nullspace;
@@ -166,6 +166,7 @@ namespace force_control{
             stream << count << "," << w.block(0,0,3,1).transpose() << ","
             << error.block(3, 0, 3, 1).transpose() << "," << w_des(1) <<"\n";
         }
+        //ROS_INFO_STREAM("logged pose error is = " << error.block(3, 0, 3, 1).transpose());
         stream.close();
     }
 
@@ -184,15 +185,46 @@ namespace force_control{
     // updates friction torque estimates according to model from friction parameters taken from https://inria.hal.science/hal-02265294/document
     void ForceActionController::update_friction_torque() {
         for(int i = 0; i<7; i++){
+
             /**
             double a = phi1[i];
             double b = phi2[i];
             double c = phi3[i];
-            double term1 = 1.0 + exp(-b * (q_dot(i,0)*1 + c));
+            double term1 = 1.0 + exp(-b * (q_dot(i,0) + c));
             double term2 = 1.0 + exp(-b * c);
+
+
+            double dynamic_friction = (a/term1) -(a/term2);
              **/
-            double sign = q_dot(i,0)/std::abs(q_dot(i,0));
-            friction_torques(i, 0) = fv[i] * q_dot(i,0) + fc[i] * sign + fo[i];
+            double v_sign = q_dot(i,0)/std::abs(q_dot(i,0));
+            int static_sign;
+            if ((J_T*Lambda*w_dot_des)(i,0) > 0.001){
+                static_sign=1;
+            }
+            else if((J_T*Lambda*w_dot_des)(i,0) < -0.001){
+                static_sign = -1;
+            }
+            else{
+                static_sign = 0;
+            }
+            double sign = tanh(q_dot(i,0));
+            double dynamic_friction = fv[i] * q_dot(i,0) + fc[i] * sign + 0*fo[i];
+            //dynamic friction (filtered)
+            dynamic_friction_torques(i, 0) =
+                   0.001 * dynamic_friction + 0.999*dynamic_friction_torques(i,0);
+            //static friction
+            friction_torques(i,0) = 0.001*
+                    (sign * static_friction_torque[i] * exp(-std::abs(q_dot(i,0))) + dynamic_friction_torques(i,0))
+                    + 0.999 * friction_torques(i,0);
+
+            /**
+            if(i==6){
+                ROS_INFO_STREAM("sign is " << static_sign);
+                ROS_INFO_STREAM("static torque is " <<  static_sign * static_friction_torque[i] * exp(-100*std::abs(q_dot(i,0))));
+                ROS_INFO_STREAM("dynamic torque is " <<  dynamic_friction_torques(i,0));
+            }
+            **/
+
         }
     }
 

@@ -22,5 +22,12 @@
       where S_i are selection matrices
     </description>
   </class>
+
+  <class name="force_control/CartesianImpedanceController" type="force_control::CartesianImpedanceController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      Cartesian Impedance controller. Impedance controllers treat the robot as mechanical impedance and chooses as such, that the robot moves like a
+      mass-spring-damper system with some stiffness K, damping D and Inertia I
+    </description>
+  </class>
 </library>
 

@@ -39,109 +39,6 @@ namespace force_control {
         M_pinv_ = Eigen::MatrixXd(svd.matrixV() * S_.transpose() * svd.matrixU().transpose());
     }
 
-    void ForceActionController::action_callback(const control_msgs::FollowJointTrajectoryGoalConstPtr & goal, ActionServer* server){
-        ROS_INFO("got a message");
-        std::cout << "Thread ACTION CALLBACK ID: " << std::this_thread::get_id() << std::endl;
-        ros::Rate rate = 333;
-
-        if (goal->trajectory.joint_names[0] == "0"){
-            control_mode = 0.0; //don't worry about Nullspace torques and set position gain to 0
-            //if this is the case we switch to hybrid force/motion control
-            //expect w in the joint velocity field 0-5
-            //expect F in the effort fields 0-5
-            ROS_INFO("Start Force Action");
-            for (size_t i = 0; i < 6; i++){
-                F_contact_des(i,0) = goal->trajectory.points[0].effort[i]; //set reference force of 3 Newton in negative z-direction
-                w_des(i,0) = goal->trajectory.points[0].velocities[i]; //set reference velocity of 1 cm/s in y-direction
-                //dq_desired << 0, 0, 0, 0, 0, 0;
-                dq_desired = pinv_J * Sm * w_des;
-            }
-
-            double roll =  goal->trajectory.points[0].positions[3]; // Rotation around X-axis (in radians)
-            double pitch = goal->trajectory.points[0].positions[4]; // Rotation around Y-axis (in radians)
-            double yaw = goal->trajectory.points[0].positions[5];   // Rotation around Z-axis (in radians)
-            /**
-            Eigen::Quaterniond quaternion;
-            quaternion = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())
-                         * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY())
-                         * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
-             **/
-            // Convert rotation matrix to quaternion
-            if (started_force_action){
-                orientation_desired = orientation;
-                started_force_action = false;
-            }
-            /**
-            translation_desired(0,0) = goal->trajectory.points[0].positions[0]; //set x-direction
-            translation_desired(1,0)  = goal->trajectory.points[0].positions[1]; //set y-direction
-            translation_desired(2,0) = goal->trajectory.points[0].positions[2]; //set z-direction
-
-            pose_desired = Eigen::Affine3d::Identity();
-            pose_desired.rotate(orientation_desired);
-            pose_desired.translation() = translation_desired;
-             **/
-            pose_desired = current_pose;
-            translation_desired = position;
-            orientation_desired = orientation;
-
-            Eigen::Matrix<double, 6, 1> force_directions;
-            force_directions << 0, 0, 1, 0 ,0, 0;
-            Sf = force_directions.asDiagonal();
-            Sm = IDENTITY - Sf;
-
-        }
-        else{
-            control_mode = 1.0;
-            started_force_action = true;
-            ros::Time callback_start = ros::Time::now();
-            // Get the trajectory points from the goal
-            F_contact_des << 0, 0, 0, 0, 0, 0;
-            Sm = IDENTITY;
-            Sf = IDENTITY - Sm;
-            std::array<double, 7> q_ref{};
-            std::array<double, 7> dq_ref{};
-            bool goal_reached = false;
-            size_t trajectory_size = goal->trajectory.points.size();
-            ROS_INFO_STREAM("trajectory_size = " << trajectory_size);
-            // Loop over the trajectory points
-            for (size_t i = 0; i < trajectory_size; i++)
-            {
-                ROS_INFO("Starting Trajectory");
-                // Set the new reference orientation for amd position
-                const auto& point = goal->trajectory.points[i];
-                std::copy(point.positions.begin(), point.positions.end(), q_ref.begin());
-                q_desired = Eigen::Map<Eigen::Matrix<double, 7, 1>>(q_ref.data());
-                double tol = 0.022;
-                std::copy(point.velocities.begin(), point.velocities.end(), dq_ref.begin());
-                dq_desired = Eigen::Map<Eigen::Matrix<double, 7, 1>>(dq_ref.data());
-                w_des  = J * dq_desired;
-                pose_desired = (Eigen::Matrix4d::Map(model_handle_->getPose(franka::Frame::kEndEffector, q_ref, F_T_EE, EE_T_K).data()));
-                translation_desired = pose_desired.translation();
-                orientation_desired = Eigen::Quaterniond(pose_desired.rotation());
-                if (i > 0) {
-                    ROS_INFO("Adding trajectory point");
-                    const auto& last_point = goal->trajectory.points[i - 1];
-                    ros::Duration wait_time = point.time_from_start - last_point.time_from_start;
-                    ros::Time loop_start = ros::Time::now();
-                    while(ros::Time::now() - loop_start < wait_time && !goal_reached) {
-                        if (error.norm() < tol){
-                            goal_reached = true;
-                        }
-                        ROS_INFO_STREAM("goal reached = " << goal_reached);
-                        rate.sleep();
-                    }
-                    goal_reached = false;
-                }
-                //wait for first point
-                //ros::Duration callback_duration = ros::Time::now() - callback_start;
-                //ROS_INFO_STREAM("will sleep for = " << callback_duration);
-                //(point.time_from_start-callback_duration).sleep();
-                //rate.sleep();
-            }
-        }
-        server->setSucceeded();
-    }
-
 
     bool ForceActionController::init(hardware_interface::RobotHW *robot_hw,
                                      ros::NodeHandle &node_handle) {
@@ -206,8 +103,8 @@ namespace force_control {
 
         franka::RobotState initial_state = franka_state_handle_->getRobotState();
         current_pose = Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::ColMajor>>(initial_state.O_T_EE.data()); //initital pose matrix
-        k_gains_ << 100, 100, 100, 100, 50, 50, 20;
-        d_gains_ << 25, 25, 25, 25, 15, 15, 7;
+        k_gains_ << 600, 600, 600, 600, 250, 150, 200;
+        d_gains_ << 30, 30, 30, 30, 10, 10, 5;
         F_T_EE = initial_state.F_T_EE;
         EE_T_K = initial_state.EE_T_K;
         std::ofstream F;
@@ -228,7 +125,7 @@ namespace force_control {
 
         std::ofstream F_error;
         F_error.open("/home/lucas/Desktop/MA/Force_Data/friction.txt");
-        F_error << "time eFx eFy eFz eMx eMy eMz\n";
+        F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
         F_error.close();
 
         std::ofstream w;
@@ -238,8 +135,12 @@ namespace force_control {
 
         Eigen::Map<Eigen::Matrix<double, 7, 1>> q_initial(initial_state.q.data());
         pose_desired =(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-        translation_desired = pose_desired.translation();
+        Eigen::Vector3d deviation;
+        deviation << 0.0, 0.0, 0.0;
+        translation_desired = pose_desired.translation() + deviation;
         orientation_desired = Eigen::Quaterniond(pose_desired.rotation());
+        translation_target = translation_desired;
+        orientation_target = orientation_desired;
         q_desired = q_initial;
         dq_desired << 0, 0, 0, 0, 0, 0, 0;
         kalman_ext_force = kalman_filter.predict(0, dt);
@@ -257,25 +158,29 @@ namespace force_control {
             //std::cout << "Thread MAIN ID: " << std::this_thread::get_id() << std::endl;
             //}
 
+            get_dynamic_model_parameters();
             update_state();
+            compute_task_space_matrices();
             update_forces();
             update_friction_torque();
-            error = get_pose_error();
-            get_dynamic_model_parameters();
-            compute_task_space_matrices();
+            pose_error = get_pose_error();
+
 
             //compute PD-control laq acceleration in operational space
             Eigen::Matrix<double, 6, 1> kp_values;
             Eigen::Matrix<double, 6, 1> kd_values;
-            kp_values << 600, 600, 600, 600, 250, 150, 50;
-            kd_values << 45, 45, 45, 45, 25, 15, 10; //30, ...30, 10, 10, 5
-            Eigen::Matrix<double, 6, 6> kp = 1 * kp_values.asDiagonal(); //600 FOR VERY FAST
-            //Eigen::Matrix<double, 6, 6> kd = 2 * kp.array().sqrt() * 1.3; //select kd to slightly over-damp
-            Eigen::Matrix<double, 6, 6> kd =  1 * kd_values.asDiagonal();
-            I_error += dt * error;
-            double ki = 0.0;
+            Eigen::Matrix<double, 6, 1> ki_values;
+            kp_values << 600, 600, 600, 1750, 1750, 2000; //... 400,400,2000
+            kd_values << 60, 60, 60, 5, 5, 5;
+            ki_values << 5, 5, 5, 150, 150, 500; //...5, 5, 50
+            //Eigen::Matrix<double, 6, 6> kp = 40 * IDENTITY;s
+            Eigen::Matrix<double, 6, 6> kp = kp_values.asDiagonal();
+            Eigen::Matrix<double, 6, 6> kd = kd_values.asDiagonal();
+            Eigen::Matrix<double, 6, 6> ki = ki_values.asDiagonal();
 
-            kalman_ext_force = kalman_filter.correct(F_ext(2,1), Lambda, w_dot_des);
+
+
+            //kalman_ext_force = kalman_filter.correct(F_ext(2,1), Lambda, w_dot_des);
 
             Eigen::Matrix<double, 7, 7> Kp = k_gains_.asDiagonal();
             Eigen::Matrix<double, 7, 7> Kd = d_gains_.asDiagonal();
@@ -283,35 +188,42 @@ namespace force_control {
 
         switch (control_mode) {
             case 0:
+                /**
                 F_cmd = (1.9 * delta_F + 13.5 * error_F + 0.01 * dF_error) * control_mode;
                 if ((J * dq_filtered)(2, 0) > 0.005) {
                     F_cmd = 0.3 * F_contact_des;
                 }
+                F_cmd *= 0;
+                **/
                 //calculate desired acceleration with PD-control law
-                w_dot_des = kp * error + ki * I_error + kd * (w_des - w);
+                w_dot_des = kp * pose_error + ki * I_error + kd * (w_des - w);
+                for(int i=0; i<6; i++){
+                    w_dot_des(i,0) = std::max(-max_accelerations[i] * 0.5, std::min(w_dot_des(i,0), max_accelerations[i] * 0.5));
+                }
                 tau_des = J_T * (Lambda * Sm * w_dot_des + Sf * F_cmd + mu) +
-                          tau_nullspace; // no need for g because franka compensates it automatically
+                         1 * tau_nullspace + friction_torques; // no need for g because franka compensates it automatically
                 //cartesian control
                 break;
             case 1:
                 //joint control
                 ddq_desired = Kp * (q_desired - q) + Kd * (dq_desired - q_dot);
-                tau_des = M * ddq_desired + b + g;
+                tau_des = M * ddq_desired + b + friction_torques; //g is added internally by libfranka
                 break;
             }
 
             //update force observers
-            kalman_ext_force = kalman_filter.predict(F_cmd(2,1), dt);
-            update_observer();
+            //kalman_ext_force = kalman_filter.predict(F_cmd(2,1), dt);
+            //update_observer();
+
+            tau_des = saturateTorqueRate(tau_des, Eigen::Map<Eigen::Matrix<double, 7 , 1>>(robot_state_.tau_J_d.data()));
 
             for (size_t i = 0; i < 7; ++i) {
-                tau_des = saturateTorqueRate(tau_des, Eigen::Map<Eigen::Matrix<double, 7 , 1>>(robot_state_.tau_J_d.data()));
-                joint_handles_[i].setCommand(std::min(tau_des(i), 87.0));
+                joint_handles_[i].setCommand(tau_des(i));
             }
 
             if(control_mode == 0 && log_rate_()){ //log control mode = 0 -> cartesian, control_mode = 1 -> joint state
                 check_movement_and_log(F_ext.transpose(), F_cmd(2,0));
-                log_velocity_and_orientation(w, error);
+                log_velocity_and_orientation(w, pose_error);
 
                 std::ofstream pose;
                 pose.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt",std::ios::app);
@@ -319,18 +231,18 @@ namespace force_control {
                     pose << count << "," << position.transpose() << "," << translation_desired.transpose() << "\n";
                 }
                 pose.close();
-                tau_observed(1,0) = (pinv_J_T*tau_des)(2,0);
+                //tau_observed(1,0) = (pinv_J_T*tau_des)(2,0);
                 std::ofstream dtau_log;
                 dtau_log.open("/home/lucas/Desktop/MA/Force_Data/dtau.txt", std::ios::app);
                 if (dtau_log.is_open()){
-                    dtau_log << count << "," << (pinv_J_T*(tau_observed)).transpose() << "," << dtau.norm() << "," << dtau.norm() << "\n";
+                    dtau_log << count << "," << tau_des.transpose() << "," << dtau.norm() << "\n";
                 }
                 dtau_log.close();
 
                 std::ofstream F_error;
                 F_error.open("/home/lucas/Desktop/MA/Force_Data/friction.txt", std::ios::app);
                 if (F_error.is_open()){
-                    F_error << count << "," << (Lambda*w_dot_des).transpose()  << "\n";
+                    F_error << count << "," << dynamic_friction_torques.transpose() << "," << "\n";
                 }
                 F_error.close();
 
@@ -342,7 +254,9 @@ namespace force_control {
             //auto time = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
             //std::cout << "Time taken by update: "
             // << time.count() << " microseconds" << std::endl;
-
+        translation_desired = 0.1 * translation_target + (1.0 - 0.1) * translation_desired;
+        //orientation_desired = orientation_desired.slerp(0.1, orientation_target);
+        orientation_desired = orientation_target;
 
         }
 

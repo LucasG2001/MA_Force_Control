@@ -139,29 +139,35 @@ namespace force_control {
         Eigen::Quaterniond orientation;
         Eigen::Vector3d position;
         Eigen::Matrix<double, 6, 1> w; //velocity of EE
-        Eigen::Matrix<double, 6, 1> error; //velocity of EE
+        Eigen::Matrix<double, 6, 1> pose_error;
 
         //friction parameters taken from https://inria.hal.science/hal-02265294/document
         //Dynamic Identification of the Franka Emika Panda Robot
         //with Retrieval of Feasible Parameters Using Penalty-Based Optimization
         //– Supplementary material –
-        std::vector<double> phi1 = {5.4615e-01, 8.7224e+03, 6.4068e-01, 1.2794e+00, 8.3904e-01, 3.0301e-01, 5.6489e-01};
-        std::vector<double> phi2 = {5.1181e+00, 9.0657e+00, 1.0136e+01, 5.5903e+00, 8.3469e+00, 1.7133e+01, 1.0336e+01};
+        std::vector<double> phi1 = {5.4615e-01, 0, 6.4068e-01, 1.2794e+00, 8.3904e-01, 3.0301e-01, 5.6489e-01}; //8.7224e+03
+        std::vector<double> phi2 = {5.1181e+00, 9.0657e+00, 1.0136e+01, 5.5903e+00, 8.3469e+00, 1.7133e+01, 1.033,  6e+01};
         std::vector<double> phi3 = {3.9533e-02, 2.5882e-02, -4.6070e-02, 3.6194e-02, 2.6226e-02, -2.1047e-02, 3.5526e-03};
 
         std::vector<double> fv = {0.0665, 0.1987, 0.0399, 0.2257, 0.1023, -0.0132, 0.0638};
         std::vector<double> fc = {0.2450, 0.1523, 0.1827, 0.3591, 0.2669, 0.1658, 0.2109};
         std::vector<double> fo = {-0.1073, -0.1566, -0.0686, -0.2522, 0.0045, 0.0910, -0.0127};
+        //my static torque estimate
+        std::vector<double> static_friction_torque = {0.0, 0.0, 0.0, 0.0, 1.4, 1.44, 0.9};
         // friction torques
         Eigen::Matrix<double, 7, 1> friction_torques = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> dynamic_friction_torques = Eigen::MatrixXd::Zero(7,1);
+        std::vector<double> max_accelerations = {9.0, 9.0, 9.0, 17.0, 17.0, 17.0};
 
         Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,6); //desired contact force
         Eigen::Matrix<double, 6, 1>  w_dot_des = Eigen::MatrixXd::Zero(6,6); //desired
         Eigen::Matrix<double, 7, 1>  ddq_desired = Eigen::MatrixXd::Zero(6,6); //desired
         Eigen::Affine3d pose_desired; //desired pose
         Eigen::Quaterniond orientation_desired;
+        Eigen::Quaterniond orientation_target;
         Eigen::Vector3d translation_desired;
-
+        Eigen::Vector3d translation_target;
+        double waypoint_time;
         Eigen::Matrix<double, 6, 1> w_des = Eigen::MatrixXd::Zero(6,6); //desired velocity of EE
         Eigen::Matrix<double, 6, 1> delta_F_last = Eigen::MatrixXd::Zero(6, 1);; //previous F value
         Eigen::Matrix<double, 6, 1> dF_last = Eigen::MatrixXd::Zero(6,1);; //previous F value

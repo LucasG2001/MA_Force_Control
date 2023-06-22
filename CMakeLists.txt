@@ -79,6 +79,8 @@ add_library(force_control
         src/test_controller.cpp
         src/force_action_controller.cpp
         src/ForceActionController_helpers.cpp
+        src/cartesian_impedance_controller.cpp
+        src/callbacks.cpp
        )
 
 
