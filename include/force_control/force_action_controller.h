@@ -37,6 +37,8 @@
 
 /* ToDo: Implement w_dot_desired control */
 namespace force_control {
+    //global definitions
+    typedef actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> ActionServer;
 
     struct Reference{
         Eigen::Matrix<double, 6, 1>  F;
@@ -83,8 +85,6 @@ namespace force_control {
         double predict(double input, double timestep);
     };
 
-    typedef actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> ActionServer;
-    //void action_callback(const control_msgs::FollowJointTrajectoryGoalConstPtr & goal, ActionServer* server);
 
     class ForceActionController : public controller_interface::MultiInterfaceController<
             franka_hw::FrankaModelInterface,
@@ -153,11 +153,11 @@ namespace force_control {
         std::vector<double> fc = {0.2450, 0.1523, 0.1827, 0.3591, 0.2669, 0.1658, 0.2109};
         std::vector<double> fo = {-0.1073, -0.1566, -0.0686, -0.2522, 0.0045, 0.0910, -0.0127};
         //my static torque estimate
-        std::vector<double> static_friction_torque = {0.0, 0.0, 0.0, 0.0, 1.4, 1.44, 0.9};
+        std::vector<double> static_friction_torque = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.7};
         // friction torques
         Eigen::Matrix<double, 7, 1> friction_torques = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> dynamic_friction_torques = Eigen::MatrixXd::Zero(7,1);
-        std::vector<double> max_accelerations = {9.0, 9.0, 9.0, 17.0, 17.0, 17.0};
+        std::vector<double> max_accelerations = {6.0, 6.0, 6.0, 3400.0, 3400.0, 3400.0};
 
         Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,6); //desired contact force
         Eigen::Matrix<double, 6, 1>  w_dot_des = Eigen::MatrixXd::Zero(6,6); //desired
@@ -216,9 +216,10 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> q_desired = Eigen::MatrixXd::Zero(7,1);
         std::array<double, 16> initial_pose_;
         Eigen::Matrix<double, 6, 1> I_error = Eigen::MatrixXd::Zero(6,1);
+        Eigen::Matrix<double, 7, 1> q_I_error = Eigen::MatrixXd::Zero(7,1);
         std::array<double, 16> F_T_EE; //end effector in flange frame
         std::array<double, 16> EE_T_K; //stiffness frame in EE frame
-        unsigned int control_mode = 0; // 1 for joint control, 0 for cartesian control/force control
+        int control_mode = 0; // 1 for joint control, 0 for cartesian control/force control
         const double dt = 0.001; //time between controller updates
         franka_hw::TriggerRate rate_trigger_{1/dt};
         franka_hw::TriggerRate log_rate_{100};

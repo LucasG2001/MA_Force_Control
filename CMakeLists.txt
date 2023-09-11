@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   urdf
   visualization_msgs
+        franka_example_controllers
 )
 
 find_package(Eigen3 REQUIRED)
@@ -81,6 +82,7 @@ add_library(force_control
         src/ForceActionController_helpers.cpp
         src/cartesian_impedance_controller.cpp
         src/callbacks.cpp
+        src/CartesianImpedanceController_helpers.cpp
        )
 
 

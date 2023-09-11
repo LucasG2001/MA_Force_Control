@@ -1072,6 +1072,18 @@
 			"path" : "/opt/ros/noetic/share/visualization_msgs/cmake/visualization_msgs-msg-extras.cmake"
 		},
 		{
+			"isExternal" : true,
+			"path" : "/home/lucas/catkin_ws/devel/share/franka_example_controllers/cmake/franka_example_controllersConfig-version.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/home/lucas/catkin_ws/devel/share/franka_example_controllers/cmake/franka_example_controllersConfig.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/home/lucas/catkin_ws/devel/share/franka_example_controllers/cmake/franka_example_controllers-msg-extras.cmake"
+		},
+		{
 			"isGenerated" : true,
 			"path" : "cmake-build-debug/catkin_generated/ordered_paths.cmake"
 		},

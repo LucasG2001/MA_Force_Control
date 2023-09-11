@@ -4,14 +4,11 @@
 // Copyright (c) 2017 Franka Emika GmbH
 // Use of this source code is governed by the Apache-2.0 license, see LICENSE
 #include <force_control/cartesian_impedance_controller.h>
-
 #include <cmath>
 #include <memory>
-
 #include <controller_interface/controller_base.h>
 #include <franka/robot_state.h>
 #include <pluginlib/class_list_macros.h>
-#include <ros/ros.h>
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
 
 
@@ -48,8 +45,21 @@ namespace force_control{
         std::vector<double> cartesian_stiffness_vector;
         std::vector<double> cartesian_damping_vector;
 
-        sub_equilibrium_pose_ = node_handle.subscribe(
-                "equilibrium_pose", 20, &CartesianImpedanceController::equilibriumPoseCallback, this,
+        //sub_equilibrium_pose_ = node_handle.subscribe(
+                //"equilibrium_pose", 20, &CartesianImpedanceController::equilibriumPoseCallback, this,
+                //ros::TransportHints().reliable().tcpNoDelay());
+
+        //subscriber for Yannic Hofmanns and Lucas Gimenos Hololens-Teleoperation code
+        sub_eq_config = node_handle.subscribe(
+                "joint_angles", 20, &CartesianImpedanceController::JointConfigCallback, this,
+                ros::TransportHints().reliable().tcpNoDelay());
+
+        sub_hand_pose = node_handle.subscribe(
+                "right_hand", 20, &CartesianImpedanceController::HandPoseCallback, this,
+                ros::TransportHints().reliable().tcpNoDelay());
+
+        sub_force_action = node_handle.subscribe(
+                "panda_force_action", 20, &CartesianImpedanceController::force_callback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
 
         std::string arm_id;
@@ -117,18 +127,19 @@ namespace force_control{
         dynamic_reconfigure_compliance_param_node_ =
                 ros::NodeHandle(node_handle.getNamespace() + "/dynamic_reconfigure_compliance_param_node");
 
+        dynamic_server_compliance_param_ = std::make_unique<
+                dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>(
+
+                dynamic_reconfigure_compliance_param_node_);
+        dynamic_server_compliance_param_->setCallback(
+                boost::bind(&CartesianImpedanceController::complianceParamCallback, this, _1, _2));
+
 
         position_d_.setZero();
         orientation_d_.coeffs() << 0.0, 0.0, 0.0, 1.0;
         position_d_target_.setZero();
         orientation_d_target_.coeffs() << 0.0, 0.0, 0.0, 1.0;
 
-        cartesian_stiffness_.setZero();
-        cartesian_damping_.setZero();
-        cartesian_stiffness_target_.setZero();
-        cartesian_damping_target_.setZero();
-        //cartesian_stiffness_ << 40, 40, 40, 20, 20, 20 ;
-        //cartesian_damping_  << 8, 8, 8, 5, 5, 5;
         return true;
     }
 
@@ -142,6 +153,8 @@ namespace force_control{
         // convert to eigen
         Eigen::Map<Eigen::Matrix<double, 7, 1>> q_initial(initial_state.q.data());
         Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
+        F_T_EE = initial_state.F_T_EE;
+        EE_T_K = initial_state.EE_T_K;
 
         // set equilibrium point to current state
         position_d_ = initial_transform.translation();
@@ -151,10 +164,46 @@ namespace force_control{
 
         // set nullspace equilibrium configuration to initial q
         q_d_nullspace_ = q_initial;
-        cartesian_stiffness_target_ = 200 * IDENTITY;
-        cartesian_damping_target_ = 35 * IDENTITY;
+        nullspace_stiffness_target_ = 30;
+        K.topLeftCorner(3, 3) = 200 * Eigen::Matrix3d::Identity();
+        K.bottomRightCorner(3, 3) << 90, 0, 0, 0, 90, 0, 0, 0, 80;
+        D.topLeftCorner(3, 3) = 35 * Eigen::Matrix3d::Identity();
+        D.bottomRightCorner(3, 3) << 15, 0, 0, 0, 15, 0, 0, 0, 12;
+        cartesian_stiffness_target_ = K;
+        cartesian_damping_target_ = D;
+        //T.topLeftCorner(3, 3) = 1 * Eigen::Matrix3d::Identity();
+        //T.bottomRightCorner(3, 3) = 0.1 * Eigen::Matrix3d::Identity();
 
+        //construct repulsing sphere around 0, 0, 0
+        R = 0.00001; C << 0.0, 0, 0.0;
+        repulsion_K.setZero(); repulsion_D.setZero();
+        //set zero stiffness and damping for rotational velocities and positions
+        repulsion_K = Eigen::Matrix3d::Identity(); repulsion_D = Eigen::Matrix3d::Identity();
+
+
+
+        /** //free float
+        K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0;
+         **/
+
+        //loggers
+        std::ofstream F;
+        F.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt");
+        //F << "time,Fx,Fy,Fz,Mx,My,Mz,w_dot_des\n";
+        F << "time dF1 dF2 dF3 dF4 dF5 dF6 Fref Fcmd kalman_estimate Fx Fy Fz Mx My Mz\n";
+        F.close();
+
+        std::ofstream dtau;
+        dtau.open("/home/lucas/Desktop/MA/Force_Data/dtau.txt");
+        dtau << "time dtau1 dtau2 dtau3 dtau4 dtau5 dtau6 dtau7 dtau_abs\n";
+        dtau.close();
+
+        std::ofstream F_error;
+        F_error.open("/home/lucas/Desktop/MA/Force_Data/friction.txt");
+        F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
+        F_error.close();
     }
+
 
     void CartesianImpedanceController::update(const ros::Time& /*time*/,
                                                      const ros::Duration& /*period*/) {
@@ -178,9 +227,9 @@ namespace force_control{
         Eigen::Quaterniond orientation(transform.rotation());
 
         Lambda = (jacobian * M.inverse() * jacobian.transpose()).inverse();
+        T = Lambda; // let robot behave with it's own physical inertia
         // compute error to desired pose
         // position error
-        Eigen::Matrix<double, 6, 1> error;
         error.head(3) << position - position_d_;
 
         // orientation error
@@ -194,77 +243,81 @@ namespace force_control{
         error.tail(3) << -transform.rotation() * error.tail(3);
 
         // compute control
+        F_impedance = -Lambda * T.inverse() * (D * (jacobian * dq) + K * error);
+
+        //Force PID
+        F_ext = Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()) * 0.999 + 0.001 * F_ext;
+        I_F_error += dt*(F_contact_des - F_ext);
+        F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des - 0 *Sf * F_impedance; //no need to multiply with Sf since it is done afterwards anyway
+        //F_cmd = F_contact_des;
+
         // allocate variables
-        Eigen::VectorXd tau_task(7), tau_nullspace(7), tau_d(7);
+        Eigen::VectorXd tau_task(7), tau_nullspace(7), tau_d(7), tau_impedance(7);
 
         // pseudoinverse for nullspace handling
         // kinematic pseuoinverse
         Eigen::MatrixXd jacobian_transpose_pinv;
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
 
-        // Cartesian PD control with damping ratio = 1
-        tau_task << jacobian.transpose() *
-                    (-cartesian_stiffness_ * error - cartesian_damping_ * (jacobian * dq));
+        //construct external repulsion force
+        Eigen::Vector3d r = position - C; // compute vector between EE and sphere
+        //ROS_INFO_STREAM("r is " << r.transpose());
+        double penetration_depth = std::max(0.0, R-r.norm());
+        //ROS_INFO_STREAM("penetration depth is " << penetration_depth);
+        Eigen::Vector3d v = (jacobian*dq).head(3);
+        v = v.dot(r)/r.squaredNorm() * r; //projected velocity
+        //ROS_INFO_STREAM("projected velocity is " << v.transpose());
+        bool isInSphere = r.norm() < R;
+        //double alpha = error.norm()/(r.norm()+0.0001); //scaling to reach same forces in repulsion and add offset to not divide by 0
+        Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
+        double r_eq = 0.8 * R;
+        //double alpha = projected_error.norm()*R*0.95;
+        repulsion_K = (K * r_eq/(R-r_eq)).topLeftCorner(3,3); //assume Lambda = Theta(T) to avoid numerical issues
+        repulsion_D = 2 * (repulsion_K).array().sqrt();
+
+        if(isInSphere){
+            F_repulsion.head(3) = 0.99* (repulsion_K * penetration_depth * r/r.norm() - repulsion_D * v) + 0.01 * F_repulsion.head(3); //assume Theta = Lambda
+        }
+        else{
+            double decay = -log(0.0001)/R; //at 2R the damping is divided by 10'000
+            F_repulsion.head(3) = - exp(decay * (R-r.norm())) * 0.1 * repulsion_D * v + 0.9 * F_repulsion.head(3); // 0.005 * F_repulsion_new + 0.995 * F_repulsion_old
+        }
+
+        /**
+        ROS_INFO_STREAM("impedance Force is " << F_impedance.transpose());
+        ROS_INFO_STREAM("repulsive Force is " << F_repulsion.transpose());
+        ROS_INFO_STREAM("Is in sphere is " << isInSphere);
+        ROS_INFO_STREAM("R is " << r.norm());
+        **/
+
         // nullspace PD control with damping ratio = 1
         tau_nullspace << (Eigen::MatrixXd::Identity(7, 7) -
                           jacobian.transpose() * jacobian_transpose_pinv) *
-                         (nullspace_stiffness_ * (q_d_nullspace_ - q) -
+                         (nullspace_stiffness_ * config_control * (q_d_nullspace_ - q) - //Do not use joint positions yet
                           (2.0 * sqrt(nullspace_stiffness_)) * dq);
-        // Desired torque
-        tau_d << tau_task + tau_nullspace + coriolis;
-        // Saturate torque rate to avoid discontinuities
-        tau_d << saturateTorqueRate(tau_d, tau_J_d);
+
+        //virtual walls
+        double wall_pos = 12.0;
+        if (std::abs(position.y()) >= wall_pos){
+            F_impedance.y() = -(500 * (position.y()-wall_pos)) + 45 *(jacobian*dq)(1,0) * 0.001 + 0.999 * F_impedance(1,0);
+        }
+
+        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion) + jacobian.transpose() * Sf * F_cmd;
+        tau_d << tau_impedance + tau_nullspace + coriolis; //add nullspace and coriolis components to desired torque
+        tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities
         for (size_t i = 0; i < 7; ++i) {
             joint_handles_[i].setCommand(tau_d(i));
         }
 
-        // update parameters changed online either through dynamic reconfigure or through the interactive
-        // target by filtering
+        update_stiffness_and_references();
 
-        cartesian_stiffness_ =
-                filter_params_ * cartesian_stiffness_target_ + (1.0 - filter_params_) * cartesian_stiffness_;
-        cartesian_damping_ =
-                filter_params_ * cartesian_damping_target_ + (1.0 - filter_params_) * cartesian_damping_;
-        nullspace_stiffness_ =
-                filter_params_ * nullspace_stiffness_target_ + (1.0 - filter_params_) * nullspace_stiffness_;
-        std::lock_guard<std::mutex> position_d_target_mutex_lock(
-                position_and_orientation_d_target_mutex_);
-
-
-        position_d_ = filter_params_ * position_d_target_ + (1.0 - filter_params_) * position_d_;
-        orientation_d_ = orientation_d_.slerp(filter_params_, orientation_d_target_);
-
-        //ROS_INFO_STREAM("equilibrium pose = " << position_d_);
-
-    }
-
-    Eigen::Matrix<double, 7, 1> CartesianImpedanceController::saturateTorqueRate(
-            const Eigen::Matrix<double, 7, 1>& tau_d_calculated,
-            const Eigen::Matrix<double, 7, 1>& tau_J_d) {  // NOLINT (readability-identifier-naming)
-        Eigen::Matrix<double, 7, 1> tau_d_saturated{};
-        for (size_t i = 0; i < 7; i++) {
-            double difference = tau_d_calculated[i] - tau_J_d[i];
-            tau_d_saturated[i] =
-                    tau_J_d[i] + std::max(std::min(difference, delta_tau_max_), -delta_tau_max_);
-        }
-        return tau_d_saturated;
-    }
-
-    void CartesianImpedanceController::equilibriumPoseCallback(
-            const geometry_msgs::PoseStampedConstPtr& msg) {
-        std::lock_guard<std::mutex> position_d_target_mutex_lock(
-                position_and_orientation_d_target_mutex_);
-        position_d_target_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
-        Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
-        orientation_d_target_.coeffs() << msg->pose.orientation.x, msg->pose.orientation.y,
-                msg->pose.orientation.z, msg->pose.orientation.w;
-        if (last_orientation_d_target.coeffs().dot(orientation_d_target_.coeffs()) < 0.0) {
-            orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
-        }
+        //logging
+        log_values_to_file(log_rate_() && do_logging);
     }
 
 
-}  //
+
+}  // namespace force control
 
 PLUGINLIB_EXPORT_CLASS(force_control::CartesianImpedanceController,
         controller_interface::ControllerBase)

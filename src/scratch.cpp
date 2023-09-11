@@ -26,3 +26,11 @@ void ForceActionController::action_callback(const control_msgs::FollowJointTraje
     }
     server->setSucceeded();
 }
+
+
+//Eigen::Vector3d f_k_r = 1e+05* 1/r.squaredNorm() * (r/r.norm()); //repulsion force proportional to 1/r^2 in r-direction
+//Eigen::Vector3d damping_direction = -v.dot(r) * r/r.squaredNorm();
+//Eigen::Vector3d f_d_r = 2*sqrt(5/r.squaredNorm()) * damping_direction;
+//F_repulsion.head(3) = std::max(R-r.norm(), 0.0) * f_k_r + std::max(v.dot(r), 0.0) * f_d_r;
+//F_repulsion.head(3) = -1 * F_impedance.head(3).dot(r)/r.squaredNorm() * r * 1.2;
+//        F_repulsion.head(3) = isInSphere * F_repulsion.head(3) * -std::min(v.dot(r)/std::abs(v.dot(r)), 0.0);

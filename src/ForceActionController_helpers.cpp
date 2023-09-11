@@ -124,7 +124,7 @@ namespace force_control{
         //get current timestamp and compute derivative of Jacobian numerically
         J = Eigen::Map<Eigen::Matrix<double, 6, 7>>(ee_zero_Jac.data());
         J_T = J.transpose();
-        dJ = (J - J_last)/dt;  I_error.setZero();
+        dJ = (J - J_last)/dt;
         J_last = J;
         //get pseudo inverse jacobian
         force_control::pseudoInverse(J_T, pinv_J_T);
@@ -144,7 +144,7 @@ namespace force_control{
         Eigen::Matrix<double, 7, 7> N = Eigen::MatrixXd::Identity(7, 7) - J_T * ginv_J_T;
         //set second task torque
         //dq_desired = pinv_J * w_des; //should least-square minimize q_dot
-        Eigen::Matrix<double, 7, 1> ddq =  0.1 * Kp * (q_desired - q) + 0.1 * Kd * (- q_dot); //set velocity to 0 or dq_des
+        Eigen::Matrix<double, 7, 1> ddq =  0.7 * Kp * (q_desired - q) + 1 * Kd * (- q_dot); //set velocity to 0 or dq_des
         Eigen::Matrix<double, 7, 1> tau_nullspace = M * ddq;
 
         return N * tau_nullspace;
@@ -163,8 +163,8 @@ namespace force_control{
         std::ofstream stream;
         stream.open("/home/lucas/Desktop/MA/Force_Data/w_forcing.txt",std::ios::app);
         if (stream.is_open()){
-            stream << count << "," << w.block(0,0,3,1).transpose() << ","
-            << error.block(3, 0, 3, 1).transpose() << "," << w_des(1) <<"\n";
+            stream << count << "," << orientation_desired.x() << "," << orientation_desired.y() << "," << orientation_desired.z() << "," <<
+            orientation.x() << "," << orientation.y() << "," << orientation.z() << "," << w_des(1) <<"\n";
         }
         //ROS_INFO_STREAM("logged pose error is = " << error.block(3, 0, 3, 1).transpose());
         stream.close();
@@ -184,9 +184,9 @@ namespace force_control{
 
     // updates friction torque estimates according to model from friction parameters taken from https://inria.hal.science/hal-02265294/document
     void ForceActionController::update_friction_torque() {
-        for(int i = 0; i<7; i++){
+        for(int i =4; i<7; i++){
 
-            /**
+
             double a = phi1[i];
             double b = phi2[i];
             double c = phi3[i];
@@ -194,9 +194,9 @@ namespace force_control{
             double term2 = 1.0 + exp(-b * c);
 
 
-            double dynamic_friction = (a/term1) -(a/term2);
-             **/
-            double v_sign = q_dot(i,0)/std::abs(q_dot(i,0));
+            double dynamic_friction = 1*((a/term1) -(a/term2));
+
+            //double v_sign = q_dot(i,0)/std::abs(q_dot(i,0));
             int static_sign;
             if ((J_T*Lambda*w_dot_des)(i,0) > 0.001){
                 static_sign=1;
@@ -207,14 +207,14 @@ namespace force_control{
             else{
                 static_sign = 0;
             }
-            double sign = tanh(q_dot(i,0));
-            double dynamic_friction = fv[i] * q_dot(i,0) + fc[i] * sign + 0*fo[i];
+            //double sign = tanh(1000*q_dot(i,0));
+            //double dynamic_friction = fv[i] * q_dot(i,0) + fc[i] * q_dot(i,0) + 0*fo[i];
             //dynamic friction (filtered)
             dynamic_friction_torques(i, 0) =
-                   0.001 * dynamic_friction + 0.999*dynamic_friction_torques(i,0);
+                   dynamic_friction;
             //static friction
             friction_torques(i,0) = 0.001*
-                    (sign * static_friction_torque[i] * exp(-std::abs(q_dot(i,0))) + dynamic_friction_torques(i,0))
+                    (static_sign * static_friction_torque[i] * exp(-std::abs(q_dot(i,0))) + dynamic_friction_torques(i,0))
                     + 0.999 * friction_torques(i,0);
 
             /**

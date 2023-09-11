@@ -228,7 +228,7 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
      NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/libforce_control.so")
     file(RPATH_CHANGE
          FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/libforce_control.so"
-         OLD_RPATH "/opt/ros/noetic/lib:/home/lucas/catkin_ws/devel/.private/franka_hw/lib:/home/lucas/catkin_ws/devel/.private/franka_gripper/lib:"
+         OLD_RPATH "/home/lucas/catkin_ws/devel/.private/franka_example_controllers/lib:/opt/ros/noetic/lib:/home/lucas/catkin_ws/devel/.private/franka_hw/lib:/home/lucas/catkin_ws/devel/.private/franka_gripper/lib:"
          NEW_RPATH "")
     if(CMAKE_INSTALL_DO_STRIP)
       execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/libforce_control.so")

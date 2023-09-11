@@ -170,9 +170,9 @@ namespace force_control {
             Eigen::Matrix<double, 6, 1> kp_values;
             Eigen::Matrix<double, 6, 1> kd_values;
             Eigen::Matrix<double, 6, 1> ki_values;
-            kp_values << 600, 600, 600, 1750, 1750, 2000; //... 400,400,2000
-            kd_values << 60, 60, 60, 5, 5, 5;
-            ki_values << 5, 5, 5, 150, 150, 500; //...5, 5, 50
+            kp_values << 144, 144, 144, 500, 500, 500; //... 400,400,2000
+            kd_values << 25, 25, 25, 30, 30, 5;
+            ki_values << 5, 5, 5, 0, 0, 0; //5 5 5 25 25 25
             //Eigen::Matrix<double, 6, 6> kp = 40 * IDENTITY;s
             Eigen::Matrix<double, 6, 6> kp = kp_values.asDiagonal();
             Eigen::Matrix<double, 6, 6> kd = kd_values.asDiagonal();
@@ -181,13 +181,32 @@ namespace force_control {
 
 
             //kalman_ext_force = kalman_filter.correct(F_ext(2,1), Lambda, w_dot_des);
-
+            I_error += pose_error * dt;
+            q_I_error += (q_desired - q) * dt;
             Eigen::Matrix<double, 7, 7> Kp = k_gains_.asDiagonal();
             Eigen::Matrix<double, 7, 7> Kd = d_gains_.asDiagonal();
             Eigen::Matrix<double, 7, 1> tau_nullspace = add_nullspace_torque(Kp, Kd);
 
-        switch (control_mode) {
-            case 0:
+            //friction torque integrator for last 3 joints
+            //Eigen::Matrix<double, 6, 7> task_Jacobian = Eigen::MatrixXd::Zero(6,7);
+            Eigen::Matrix<double, 6, 7> task_Jacobian = J;
+            task_Jacobian.block(3, 4, 3, 3).setZero();
+            //Nullspace projector (should project into the nullspace of J, s.t linear velocity is not affected, but rotational is)
+            //Eigen::MatrixXd task_ginv = (task_Jacobian*M_inv*task_Jacobian.transpose()).inverse()*task_Jacobian*M_inv;
+            Eigen::MatrixXd task_ginv;
+            pseudoInverse(task_Jacobian, task_ginv);
+            //Eigen::Matrix<double, 7, 7> N_task = Eigen::MatrixXd::Identity(7,7) - task_ginv * task_Jacobian;
+            //compute N such that N*tau = (0, 0, 0, 0, Mx, My, Mz)^T and that tau1..4 have no influence
+            Eigen::Matrix<double, 7, 7> N_task = Eigen::MatrixXd::Zero(7, 7);
+            N_task.block(4, 4, 3, 3) = Eigen::MatrixXd::Identity(3,3);
+            //get task torque
+            Eigen::Matrix<double, 7, 1> ddq = 100 * q_I_error + 100 * (q_desired-q) + 20 * (-q_dot);
+            Eigen::Matrix<double, 7, 1> tau_nullspace_friction = N_task * M * ddq;
+            //ROS_INFO_STREAM("friction compensation nullspace torque " << tau_nullspace_friction);
+            //ROS_INFO_STREAM("Nullspace projector =  " << N_task);
+
+        //switch (control_mode) {
+           // case 0:
                 /**
                 F_cmd = (1.9 * delta_F + 13.5 * error_F + 0.01 * dF_error) * control_mode;
                 if ((J * dq_filtered)(2, 0) > 0.005) {
@@ -197,13 +216,16 @@ namespace force_control {
                 **/
                 //calculate desired acceleration with PD-control law
                 w_dot_des = kp * pose_error + ki * I_error + kd * (w_des - w);
+
                 for(int i=0; i<6; i++){
                     w_dot_des(i,0) = std::max(-max_accelerations[i] * 0.5, std::min(w_dot_des(i,0), max_accelerations[i] * 0.5));
                 }
                 tau_des = J_T * (Lambda * Sm * w_dot_des + Sf * F_cmd + mu) +
-                         1 * tau_nullspace + friction_torques; // no need for g because franka compensates it automatically
+                         1 * tau_nullspace + 0 * friction_torques + tau_nullspace_friction; // no need for g because franka compensates it automatically
+                //ROS_INFO_STREAM("jacobian influence of w_dot_6 " << (J_T).block(0,5,7,1));
                 //cartesian control
-                break;
+             //   break;
+             /**
             case 1:
                 //joint control
                 ddq_desired = Kp * (q_desired - q) + Kd * (dq_desired - q_dot);
@@ -215,14 +237,16 @@ namespace force_control {
             //kalman_ext_force = kalman_filter.predict(F_cmd(2,1), dt);
             //update_observer();
 
+            **/
+
             tau_des = saturateTorqueRate(tau_des, Eigen::Map<Eigen::Matrix<double, 7 , 1>>(robot_state_.tau_J_d.data()));
 
             for (size_t i = 0; i < 7; ++i) {
-                joint_handles_[i].setCommand(tau_des(i));
+                joint_handles_[i].setCommand(tau_des(i,0));
             }
 
             if(control_mode == 0 && log_rate_()){ //log control mode = 0 -> cartesian, control_mode = 1 -> joint state
-                check_movement_and_log(F_ext.transpose(), F_cmd(2,0));
+                //check_movement_and_log(F_ext.transpose(), F_cmd(2,0));
                 log_velocity_and_orientation(w, pose_error);
 
                 std::ofstream pose;
@@ -232,17 +256,17 @@ namespace force_control {
                 }
                 pose.close();
                 //tau_observed(1,0) = (pinv_J_T*tau_des)(2,0);
-                std::ofstream dtau_log;
+
+                std::ofstream dtau_log, F_error;
                 dtau_log.open("/home/lucas/Desktop/MA/Force_Data/dtau.txt", std::ios::app);
                 if (dtau_log.is_open()){
                     dtau_log << count << "," << tau_des.transpose() << "," << dtau.norm() << "\n";
                 }
-                dtau_log.close();
 
-                std::ofstream F_error;
+                dtau_log.close();
                 F_error.open("/home/lucas/Desktop/MA/Force_Data/friction.txt", std::ios::app);
                 if (F_error.is_open()){
-                    F_error << count << "," << dynamic_friction_torques.transpose() << "," << "\n";
+                    F_error << count << "," << tau_nullspace_friction.transpose() << "," << "\n";
                 }
                 F_error.close();
 
@@ -255,7 +279,7 @@ namespace force_control {
             //std::cout << "Time taken by update: "
             // << time.count() << " microseconds" << std::endl;
         translation_desired = 0.1 * translation_target + (1.0 - 0.1) * translation_desired;
-        //orientation_desired = orientation_desired.slerp(0.1, orientation_target);
+        //orientation_desired = orientation_desired.slerp(0.5, orientation_target);
         orientation_desired = orientation_target;
 
         }
