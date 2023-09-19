@@ -62,6 +62,10 @@ namespace force_control{
                 "panda_force_action", 20, &CartesianImpedanceController::force_callback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
 
+        sub_potential_field = node_handle.subscribe(
+                "/resulting_force", 20, &CartesianImpedanceController::potential_field_callback, this,
+                ros::TransportHints().reliable().tcpNoDelay());
+
         std::string arm_id;
         if (!node_handle.getParam("arm_id", arm_id)) {
             ROS_ERROR_STREAM("CartesianImpedanceController: Could not read parameter arm_id");
@@ -302,7 +306,7 @@ namespace force_control{
             F_impedance.y() = -(500 * (position.y()-wall_pos)) + 45 *(jacobian*dq)(1,0) * 0.001 + 0.999 * F_impedance(1,0);
         }
 
-        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion) + jacobian.transpose() * Sf * F_cmd;
+        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;
         tau_d << tau_impedance + tau_nullspace + coriolis; //add nullspace and coriolis components to desired torque
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities
         for (size_t i = 0; i < 7; ++i) {

@@ -32,6 +32,7 @@
 #include <sensor_msgs/JointState.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <actionlib/server/simple_action_server.h>
+#include <geometry_msgs/Vector3.h>
 
 
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
@@ -108,6 +109,7 @@ namespace force_control {
         Eigen::Vector3d C;
         Eigen::Matrix<double, 3, 3> repulsion_K, repulsion_D;
         Eigen::Matrix<double, 6, 1> F_repulsion;
+        Eigen::Matrix<double, 6, 1> F_potential = Eigen::MatrixXd::Zero(6,1);
         Eigen::Matrix<double, 6, 1> F_impedance;
 
         // Dynamic reconfigure
@@ -135,6 +137,9 @@ namespace force_control {
 
         ros::Subscriber sub_force_action;
         void force_callback(const geometry_msgs::PoseConstPtr &goal_pose);
+
+        ros::Subscriber sub_potential_field;
+        void potential_field_callback(const geometry_msgs::Vector3 &goal_pose);
 
 
     };

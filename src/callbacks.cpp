@@ -255,4 +255,12 @@ namespace force_control {
          **/
 
     }
+
+    void CartesianImpedanceController::potential_field_callback(const geometry_msgs::Vector3 &resulting_force) {
+        ROS_INFO("got a message: updating potential field");
+        F_potential.x() = resulting_force.x;
+        F_potential.y() = resulting_force.y;
+        F_potential.z() = resulting_force.z;
+
+    }
 } //namespace force_control
