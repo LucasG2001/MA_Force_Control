@@ -186,9 +186,11 @@ namespace force_control{
 
 
 
-        /** //free float
+        //free float
+        /**
         K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0;
-         **/
+        cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
+        **/
 
         //loggers
         std::ofstream F;
@@ -276,7 +278,8 @@ namespace force_control{
         Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
         double r_eq = 0.8 * R;
         //double alpha = projected_error.norm()*R*0.95;
-        repulsion_K = (K * r_eq/(R-r_eq)).topLeftCorner(3,3); //assume Lambda = Theta(T) to avoid numerical issues
+        //repulsion_K = (K * r_eq/(R-r_eq)).topLeftCorner(3,3); //assume Lambda = Theta(T) to avoid numerical issues
+        repulsion_K = (30 * r_eq/(R-r_eq))*Eigen::MatrixXd::Identity(3,3); //for free floating operation
         repulsion_D = 2 * (repulsion_K).array().sqrt();
 
         if(isInSphere){

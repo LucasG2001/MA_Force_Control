@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="robot_ip" default="192.168.1.200"/>
-  <arg name="robot" default="fr3" doc="choose your robot. Possible values: [panda, fr3]"/>
-  <arg name="arm_id" default="fr3" />
+  <arg name="robot" default="panda" doc="choose your robot. Possible values: [panda, fr3]"/>
+  <arg name="arm_id" default="panda" />
   <include file="$(find franka_control)/launch/franka_control.launch" load_gripper="true" pass_all_args="true"/>
   <rosparam command="load" file="$(find force_control)/config/force_control.yaml" subst_value="true" />
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="cartesian_impedance_controller"/>
@@ -13,6 +13,11 @@
     <remap to="cartesian_impedance_controller/equilibrium_pose" from="equilibrium_pose" />
   </node>
   
-  <node pkg="rviz" type="rviz" output="screen" name="rviz" args="-f $(arg arm_id)_link0 -d $(find franka_example_controllers)/launch/rviz/franka_description_with_marker.rviz --splash-screen $(find franka_visualization)/splash.png"/>
+  <include file="$(find panda_moveit_config)/launch/move_group.launch" pass_all_args="true">
+    <arg name="allow_trajectory_execution" value="true" />
+    <arg name="info" value="true" />
+  </include>
+  
+  <node pkg="rviz" type="rviz" output="screen" name="rviz" args="-f $(arg arm_id)_link0 -d $(dirname)/rviz/task_planning.rviz --splash-screen $(find franka_visualization)/splash.png"/>
   <node name="reconfigure_gui" pkg="dynamic_reconfigure" type="reconfigure_gui" />
 </launch>
