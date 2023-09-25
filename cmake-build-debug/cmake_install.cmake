@@ -138,6 +138,22 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/force_control/action" TYPE FILE FILES "/home/lucas/catkin_ws/src/force_control/action/EquilibriumPose.action")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/force_control/msg" TYPE FILE FILES
+    "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg"
+    "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg"
+    "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg"
+    "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg"
+    "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg"
+    "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg"
+    "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg"
+    )
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/force_control/cmake" TYPE FILE FILES "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/catkin_generated/installspace/force_control-msg-paths.cmake")
 endif()
 

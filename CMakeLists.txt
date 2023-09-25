@@ -24,6 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
   urdf
   visualization_msgs
         franka_example_controllers
+        actionlib_msgs
+        actionlib
 )
 
 find_package(Eigen3 REQUIRED)
@@ -39,7 +41,14 @@ add_message_files(FILES
   JointTorqueComparison.msg
 )
 
-generate_messages()
+add_action_files(
+        DIRECTORY action
+        FILES EquilibriumPose.action
+)
+
+generate_messages(
+        DEPENDENCIES actionlib_msgs std_msgs geometry_msgs
+)
 
 generate_dynamic_reconfigure_options(
   cfg/compliance_param.cfg
@@ -71,6 +80,7 @@ catkin_package(
     visualization_msgs
         actionlib
         spdlog
+        actionlib_msgs
 
   DEPENDS Franka
 )
@@ -83,7 +93,8 @@ add_library(force_control
         src/cartesian_impedance_controller.cpp
         src/callbacks.cpp
         src/CartesianImpedanceController_helpers.cpp
-       )
+        src/equilibrium_pose_server.cpp
+        ../../devel/include/force_control/EquilibriumPoseAction.h)
 
 
 add_dependencies(force_control

@@ -1,8 +1,8 @@
 # generated from genmsg/cmake/pkg-genmsg.cmake.em
 
-message(STATUS "force_control: 1 messages, 0 services")
+message(STATUS "force_control: 8 messages, 0 services")
 
-set(MSG_I_FLAGS "-Iforce_control:/home/lucas/catkin_ws/src/force_control/msg")
+set(MSG_I_FLAGS "-Iforce_control:/home/lucas/catkin_ws/src/force_control/msg;-Iforce_control:/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg;-Iactionlib_msgs:/opt/ros/noetic/share/actionlib_msgs/cmake/../msg;-Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg;-Igeometry_msgs:/opt/ros/noetic/share/geometry_msgs/cmake/../msg")
 
 # Find all generators
 find_package(gencpp REQUIRED)
@@ -22,6 +22,41 @@ add_custom_target(_force_control_generate_messages_check_deps_${_filename}
   COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "force_control" "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg" ""
 )
 
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg" NAME_WE)
+add_custom_target(_force_control_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "force_control" "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg" "force_control/EquilibriumPoseActionFeedback:geometry_msgs/PoseStamped:geometry_msgs/Quaternion:geometry_msgs/Pose:force_control/EquilibriumPoseResult:geometry_msgs/Point:force_control/EquilibriumPoseActionGoal:force_control/EquilibriumPoseGoal:actionlib_msgs/GoalStatus:force_control/EquilibriumPoseFeedback:force_control/EquilibriumPoseActionResult:actionlib_msgs/GoalID:std_msgs/Header"
+)
+
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg" NAME_WE)
+add_custom_target(_force_control_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "force_control" "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg" "geometry_msgs/PoseStamped:geometry_msgs/Quaternion:geometry_msgs/Pose:geometry_msgs/Point:force_control/EquilibriumPoseGoal:actionlib_msgs/GoalID:std_msgs/Header"
+)
+
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg" NAME_WE)
+add_custom_target(_force_control_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "force_control" "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg" "actionlib_msgs/GoalID:force_control/EquilibriumPoseResult:std_msgs/Header:actionlib_msgs/GoalStatus"
+)
+
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg" NAME_WE)
+add_custom_target(_force_control_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "force_control" "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg" "geometry_msgs/PoseStamped:geometry_msgs/Quaternion:geometry_msgs/Pose:geometry_msgs/Point:force_control/EquilibriumPoseFeedback:actionlib_msgs/GoalStatus:actionlib_msgs/GoalID:std_msgs/Header"
+)
+
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg" NAME_WE)
+add_custom_target(_force_control_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "force_control" "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg" "geometry_msgs/PoseStamped:geometry_msgs/Quaternion:geometry_msgs/Pose:geometry_msgs/Point:std_msgs/Header"
+)
+
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg" NAME_WE)
+add_custom_target(_force_control_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "force_control" "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg" ""
+)
+
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg" NAME_WE)
+add_custom_target(_force_control_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "force_control" "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg" "geometry_msgs/PoseStamped:geometry_msgs/Quaternion:geometry_msgs/Pose:geometry_msgs/Point:std_msgs/Header"
+)
+
 #
 #  langs = gencpp;geneus;genlisp;gennodejs;genpy
 #
@@ -32,6 +67,48 @@ _generate_msg_cpp(force_control
   "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg"
   "${MSG_I_FLAGS}"
   ""
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/force_control
+)
+_generate_msg_cpp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg"
+  "${MSG_I_FLAGS}"
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/force_control
+)
+_generate_msg_cpp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/force_control
+)
+_generate_msg_cpp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/force_control
+)
+_generate_msg_cpp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/force_control
+)
+_generate_msg_cpp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/force_control
+)
+_generate_msg_cpp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/force_control
+)
+_generate_msg_cpp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/force_control
 )
 
@@ -51,6 +128,20 @@ add_dependencies(force_control_generate_messages force_control_generate_messages
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg" NAME_WE)
 add_dependencies(force_control_generate_messages_cpp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_cpp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_cpp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_cpp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_cpp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_cpp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_cpp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_cpp _force_control_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(force_control_gencpp)
@@ -65,6 +156,48 @@ _generate_msg_eus(force_control
   "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg"
   "${MSG_I_FLAGS}"
   ""
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
+)
+_generate_msg_eus(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg"
+  "${MSG_I_FLAGS}"
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
+)
+_generate_msg_eus(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
+)
+_generate_msg_eus(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg"
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
+)
+_generate_msg_eus(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
+)
+_generate_msg_eus(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
+)
+_generate_msg_eus(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
+)
+_generate_msg_eus(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
 )
 
@@ -84,6 +217,20 @@ add_dependencies(force_control_generate_messages force_control_generate_messages
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg" NAME_WE)
 add_dependencies(force_control_generate_messages_eus _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_eus _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_eus _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_eus _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_eus _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_eus _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_eus _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_eus _force_control_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(force_control_geneus)
@@ -98,6 +245,48 @@ _generate_msg_lisp(force_control
   "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg"
   "${MSG_I_FLAGS}"
   ""
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control
+)
+_generate_msg_lisp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg"
+  "${MSG_I_FLAGS}"
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control
+)
+_generate_msg_lisp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control
+)
+_generate_msg_lisp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control
+)
+_generate_msg_lisp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control
+)
+_generate_msg_lisp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control
+)
+_generate_msg_lisp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control
+)
+_generate_msg_lisp(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control
 )
 
@@ -117,6 +306,20 @@ add_dependencies(force_control_generate_messages force_control_generate_messages
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg" NAME_WE)
 add_dependencies(force_control_generate_messages_lisp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_lisp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_lisp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_lisp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_lisp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_lisp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_lisp _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_lisp _force_control_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(force_control_genlisp)
@@ -131,6 +334,48 @@ _generate_msg_nodejs(force_control
   "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg"
   "${MSG_I_FLAGS}"
   ""
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
+)
+_generate_msg_nodejs(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg"
+  "${MSG_I_FLAGS}"
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
+)
+_generate_msg_nodejs(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
+)
+_generate_msg_nodejs(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
+)
+_generate_msg_nodejs(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
+)
+_generate_msg_nodejs(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
+)
+_generate_msg_nodejs(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
+)
+_generate_msg_nodejs(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
 )
 
@@ -150,6 +395,20 @@ add_dependencies(force_control_generate_messages force_control_generate_messages
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg" NAME_WE)
 add_dependencies(force_control_generate_messages_nodejs _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_nodejs _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_nodejs _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_nodejs _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_nodejs _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_nodejs _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_nodejs _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_nodejs _force_control_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(force_control_gennodejs)
@@ -164,6 +423,48 @@ _generate_msg_py(force_control
   "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg"
   "${MSG_I_FLAGS}"
   ""
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
+)
+_generate_msg_py(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg"
+  "${MSG_I_FLAGS}"
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
+)
+_generate_msg_py(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
+)
+_generate_msg_py(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
+)
+_generate_msg_py(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalStatus.msg;/opt/ros/noetic/share/actionlib_msgs/cmake/../msg/GoalID.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
+)
+_generate_msg_py(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
+)
+_generate_msg_py(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
+)
+_generate_msg_py(force_control
+  "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/geometry_msgs/cmake/../msg/PoseStamped.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/noetic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
 )
 
@@ -183,6 +484,20 @@ add_dependencies(force_control_generate_messages force_control_generate_messages
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/msg/JointTorqueComparison.msg" NAME_WE)
 add_dependencies(force_control_generate_messages_py _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseAction.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_py _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_py _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_py _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseActionFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_py _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseGoal.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_py _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseResult.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_py _force_control_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/share/force_control/msg/EquilibriumPoseFeedback.msg" NAME_WE)
+add_dependencies(force_control_generate_messages_py _force_control_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(force_control_genpy)
@@ -200,6 +515,15 @@ if(gencpp_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/fo
     DESTINATION ${gencpp_INSTALL_DIR}
   )
 endif()
+if(TARGET actionlib_msgs_generate_messages_cpp)
+  add_dependencies(force_control_generate_messages_cpp actionlib_msgs_generate_messages_cpp)
+endif()
+if(TARGET std_msgs_generate_messages_cpp)
+  add_dependencies(force_control_generate_messages_cpp std_msgs_generate_messages_cpp)
+endif()
+if(TARGET geometry_msgs_generate_messages_cpp)
+  add_dependencies(force_control_generate_messages_cpp geometry_msgs_generate_messages_cpp)
+endif()
 
 if(geneus_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control)
   # install generated code
@@ -207,6 +531,15 @@ if(geneus_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/fo
     DIRECTORY ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/force_control
     DESTINATION ${geneus_INSTALL_DIR}
   )
+endif()
+if(TARGET actionlib_msgs_generate_messages_eus)
+  add_dependencies(force_control_generate_messages_eus actionlib_msgs_generate_messages_eus)
+endif()
+if(TARGET std_msgs_generate_messages_eus)
+  add_dependencies(force_control_generate_messages_eus std_msgs_generate_messages_eus)
+endif()
+if(TARGET geometry_msgs_generate_messages_eus)
+  add_dependencies(force_control_generate_messages_eus geometry_msgs_generate_messages_eus)
 endif()
 
 if(genlisp_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/force_control)
@@ -216,6 +549,15 @@ if(genlisp_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/
     DESTINATION ${genlisp_INSTALL_DIR}
   )
 endif()
+if(TARGET actionlib_msgs_generate_messages_lisp)
+  add_dependencies(force_control_generate_messages_lisp actionlib_msgs_generate_messages_lisp)
+endif()
+if(TARGET std_msgs_generate_messages_lisp)
+  add_dependencies(force_control_generate_messages_lisp std_msgs_generate_messages_lisp)
+endif()
+if(TARGET geometry_msgs_generate_messages_lisp)
+  add_dependencies(force_control_generate_messages_lisp geometry_msgs_generate_messages_lisp)
+endif()
 
 if(gennodejs_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control)
   # install generated code
@@ -223,6 +565,15 @@ if(gennodejs_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_D
     DIRECTORY ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/force_control
     DESTINATION ${gennodejs_INSTALL_DIR}
   )
+endif()
+if(TARGET actionlib_msgs_generate_messages_nodejs)
+  add_dependencies(force_control_generate_messages_nodejs actionlib_msgs_generate_messages_nodejs)
+endif()
+if(TARGET std_msgs_generate_messages_nodejs)
+  add_dependencies(force_control_generate_messages_nodejs std_msgs_generate_messages_nodejs)
+endif()
+if(TARGET geometry_msgs_generate_messages_nodejs)
+  add_dependencies(force_control_generate_messages_nodejs geometry_msgs_generate_messages_nodejs)
 endif()
 
 if(genpy_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control)
@@ -232,4 +583,13 @@ if(genpy_INSTALL_DIR AND EXISTS ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/forc
     DIRECTORY ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/force_control
     DESTINATION ${genpy_INSTALL_DIR}
   )
+endif()
+if(TARGET actionlib_msgs_generate_messages_py)
+  add_dependencies(force_control_generate_messages_py actionlib_msgs_generate_messages_py)
+endif()
+if(TARGET std_msgs_generate_messages_py)
+  add_dependencies(force_control_generate_messages_py std_msgs_generate_messages_py)
+endif()
+if(TARGET geometry_msgs_generate_messages_py)
+  add_dependencies(force_control_generate_messages_py geometry_msgs_generate_messages_py)
 endif()

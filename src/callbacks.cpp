@@ -125,6 +125,7 @@ namespace force_control {
 
     void CartesianImpedanceController::equilibriumPoseCallback(
             const geometry_msgs::PoseStampedConstPtr &msg) {
+        config_control = false;
         std::lock_guard<std::mutex> position_d_target_mutex_lock(
                 position_and_orientation_d_target_mutex_);
         position_d_target_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
@@ -134,6 +135,26 @@ namespace force_control {
         if (last_orientation_d_target.coeffs().dot(orientation_d_target_.coeffs()) < 0.0) {
             orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
         }
+        ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << " " << orientation_d_target_.coeffs());
+    }
+
+    void CartesianImpedanceController::control_mode_callback(const std_msgs::Int16ConstPtr &msg) {
+        ROS_INFO("switching control mode");
+        control_mode = msg->data;
+        if(control_mode == 1){
+            K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0;
+            cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
+        }
+        else if (control_mode == 0){
+            nullspace_stiffness_target_ = 30;
+            K.topLeftCorner(3, 3) = 200 * Eigen::Matrix3d::Identity();
+            K.bottomRightCorner(3, 3) << 90, 0, 0, 0, 90, 0, 0, 0, 80;
+            D.topLeftCorner(3, 3) = 35 * Eigen::Matrix3d::Identity();
+            D.bottomRightCorner(3, 3) << 15, 0, 0, 0, 15, 0, 0, 0, 12;
+            cartesian_stiffness_target_ = K;
+            cartesian_damping_target_ = D;
+        }
+
     }
 
     void CartesianImpedanceController::complianceParamCallback(

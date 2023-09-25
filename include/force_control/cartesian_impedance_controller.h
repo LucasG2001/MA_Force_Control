@@ -33,6 +33,7 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <actionlib/server/simple_action_server.h>
 #include <geometry_msgs/Vector3.h>
+#include <std_msgs/Int16.h>
 
 
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
@@ -46,10 +47,10 @@ namespace force_control {
             franka_hw::FrankaStateInterface> {
     public:
         CartesianImpedanceController() :
-                action_server_node("cartesian_impedance_controller"),
-                action_server_(action_server_node, "follow_joint_trajectory",boost::bind(&CartesianImpedanceController::action_callback, this, _1, &action_server_), false)
+                moveit_action_server_node("cartesian_impedance_controller"),
+                moveit_action_server(moveit_action_server_node, "follow_joint_trajectory", boost::bind(&CartesianImpedanceController::action_callback, this, _1, &moveit_action_server), false)
         {
-            action_server_.start();
+            moveit_action_server.start();
         }
 
         bool init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& node_handle) override;
@@ -123,6 +124,11 @@ namespace force_control {
         ros::Subscriber sub_equilibrium_pose_;
         void equilibriumPoseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
 
+        // Control mode subscriber
+        int control_mode; // 0 for normal 1 for free float
+        ros::Subscriber sub_control_mode;
+        void control_mode_callback(const std_msgs::Int16ConstPtr & msg);
+
         // Equilibrium pose configuration
         ros::Subscriber sub_eq_config;
         void JointConfigCallback(const sensor_msgs::JointState& goal);
@@ -131,8 +137,8 @@ namespace force_control {
         ros::Subscriber sub_hand_pose;
         void HandPoseCallback(const geometry_msgs::Point& right_hand_pos);
 
-        ros::NodeHandle action_server_node;
-        ActionServer action_server_;
+        ros::NodeHandle moveit_action_server_node;
+        ActionServer moveit_action_server;
         void action_callback(const control_msgs::FollowJointTrajectoryGoalConstPtr & goal, ActionServer* server);
 
         ros::Subscriber sub_force_action;

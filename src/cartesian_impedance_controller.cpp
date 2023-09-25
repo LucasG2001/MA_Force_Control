@@ -45,9 +45,13 @@ namespace force_control{
         std::vector<double> cartesian_stiffness_vector;
         std::vector<double> cartesian_damping_vector;
 
-        //sub_equilibrium_pose_ = node_handle.subscribe(
-                //"equilibrium_pose", 20, &CartesianImpedanceController::equilibriumPoseCallback, this,
-                //ros::TransportHints().reliable().tcpNoDelay());
+        sub_equilibrium_pose_ = node_handle.subscribe(
+                "reference_pose", 20, &CartesianImpedanceController::equilibriumPoseCallback, this,
+                ros::TransportHints().reliable().tcpNoDelay());
+
+        sub_control_mode = node_handle.subscribe(
+                "control_mode", 20, &CartesianImpedanceController::control_mode_callback, this,
+                ros::TransportHints().reliable().tcpNoDelay());
 
         //subscriber for Yannic Hofmanns and Lucas Gimenos Hololens-Teleoperation code
         sub_eq_config = node_handle.subscribe(
@@ -279,7 +283,7 @@ namespace force_control{
         double r_eq = 0.8 * R;
         //double alpha = projected_error.norm()*R*0.95;
         //repulsion_K = (K * r_eq/(R-r_eq)).topLeftCorner(3,3); //assume Lambda = Theta(T) to avoid numerical issues
-        repulsion_K = (30 * r_eq/(R-r_eq))*Eigen::MatrixXd::Identity(3,3); //for free floating operation
+        repulsion_K = (K.topLeftCorner(3,3) * r_eq/(R-r_eq))*Eigen::MatrixXd::Identity(3,3); //30 for free floating operation, else use K
         repulsion_D = 2 * (repulsion_K).array().sqrt();
 
         if(isInSphere){

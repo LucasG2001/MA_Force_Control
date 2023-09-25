@@ -37,7 +37,7 @@
   <depend>visualization_msgs</depend>
   <depend>actionlib</depend>
   <depend>spdlog</depend>
-
+  <depend>actionlib_msgs</depend>
   <exec_depend>franka_control</exec_depend>
   <exec_depend>franka_description</exec_depend>
   <exec_depend>message_runtime</exec_depend>

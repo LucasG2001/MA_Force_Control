@@ -41,7 +41,8 @@ CMake Deprecation Warning at /usr/src/googletest/googletest/CMakeLists.txt:56 (c
 -- catkin 0.8.10
 -- BUILD_SHARED_LIBS is on
 -- Using these message generators: gencpp;geneus;genlisp;gennodejs;genpy
--- force_control: 1 messages, 0 services
+-- Generating .msg files for action force_control/EquilibriumPose /home/lucas/catkin_ws/src/force_control/action/EquilibriumPose.action
+-- force_control: 8 messages, 0 services
 -- Installing devel-space wrapper /home/lucas/catkin_ws/src/force_control/scripts/interactive_marker.py to /home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/lib/force_control
 -- Installing devel-space wrapper /home/lucas/catkin_ws/src/force_control/scripts/move_to_start.py to /home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/lib/force_control
 -- Installing devel-space wrapper /home/lucas/catkin_ws/src/force_control/scripts/dual_arm_interactive_marker.py to /home/lucas/catkin_ws/src/force_control/cmake-build-debug/devel/lib/force_control
