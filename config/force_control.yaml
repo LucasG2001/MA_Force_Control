@@ -1,29 +1,3 @@
-operational_space_force_controller:
-    type: force_control/OperationalSpaceForceController
-    arm_id: $(arg arm_id)
-    joint_names:
-        - $(arg arm_id)_joint1
-        - $(arg arm_id)_joint2
-        - $(arg arm_id)_joint3
-        - $(arg arm_id)_joint4
-        - $(arg arm_id)_joint5
-        - $(arg arm_id)_joint6
-        - $(arg arm_id)_joint7
-
-
-test_controller:
-    type: force_control/TestController
-    arm_id: $(arg arm_id)
-    joint_names:
-        - $(arg arm_id)_joint1
-        - $(arg arm_id)_joint2
-        - $(arg arm_id)_joint3
-        - $(arg arm_id)_joint4
-        - $(arg arm_id)_joint5
-        - $(arg arm_id)_joint6
-        - $(arg arm_id)_joint7
-
-
 force_action_controller:
     type: force_control/ForceActionController
     arm_id: $(arg arm_id)

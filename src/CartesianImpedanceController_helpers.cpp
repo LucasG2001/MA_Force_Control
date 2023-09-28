@@ -2,7 +2,6 @@
 #include <pluginlib/class_list_macros.h>
 #include <chrono>
 #include <functional>
-#include <thread>
 
 namespace force_control {
 

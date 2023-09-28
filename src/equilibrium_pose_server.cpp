@@ -1,7 +1,9 @@
 //
 // Created by lucas on 25.09.23.
 //
-
+/*
+ * This file was a fruitless try to implement the equilibrium pose callback as action server
+ * */
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include "../../../devel/include/force_control/EquilibriumPoseAction.h"

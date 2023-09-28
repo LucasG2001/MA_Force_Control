@@ -79,15 +79,12 @@ catkin_package(
     urdf
     visualization_msgs
         actionlib
-        spdlog
         actionlib_msgs
 
   DEPENDS Franka
 )
 
 add_library(force_control
-  src/operational_space_force_controller.cpp
-        src/test_controller.cpp
         src/force_action_controller.cpp
         src/ForceActionController_helpers.cpp
         src/cartesian_impedance_controller.cpp

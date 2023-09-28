@@ -76,6 +76,8 @@ namespace force_control {
         std::array<double, 16> EE_T_K; //stiffness frame in EE frame
         Eigen::Affine3d pose_desired;
         Eigen::Matrix<double, 6, 1> error; //pose error (6d)
+        Eigen::Matrix<double, 6, 1> I_error = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
+        Eigen::Matrix<double, 6, 1> max_I = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
         Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,6); //desired contact force
         Eigen::Matrix<double, 6, 1>  F_ext = Eigen::MatrixXd::Zero(6,6); //external forces
         Eigen::Matrix<double, 6, 1>  F_cmd = Eigen::MatrixXd::Zero(6,6); //commanded contact force
@@ -88,12 +90,12 @@ namespace force_control {
         Eigen::Matrix<double, 6,6> cartesian_inertia_target_; //impedance damping term
 
         //FLAGS
-        bool config_control = true; //sets if we want to control the configuration of the robot in nullspace
+        bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
         bool do_logging = false; //set if we do log values
         // end FLAGS
         double filter_params_{0.005};
-        double nullspace_stiffness_{40};
-        double nullspace_stiffness_target_{40.0};
+        double nullspace_stiffness_{1};
+        double nullspace_stiffness_target_{1.0};
         const double delta_tau_max_{1.0};
         Eigen::Matrix<double, 7, 1> q_d_nullspace_;
         Eigen::Vector3d position_d_;
@@ -105,10 +107,11 @@ namespace force_control {
         franka_hw::TriggerRate log_rate_{1000}; //logging
         double dt = 0.001;
 
-        //repulsion sphere test;
+        //repulsion sphere around right hand;
         double R;
         Eigen::Vector3d C;
         Eigen::Matrix<double, 3, 3> repulsion_K, repulsion_D;
+        //all included Forces
         Eigen::Matrix<double, 6, 1> F_repulsion;
         Eigen::Matrix<double, 6, 1> F_potential = Eigen::MatrixXd::Zero(6,1);
         Eigen::Matrix<double, 6, 1> F_impedance;
@@ -137,13 +140,16 @@ namespace force_control {
         ros::Subscriber sub_hand_pose;
         void HandPoseCallback(const geometry_msgs::Point& right_hand_pos);
 
+        //moveit action server to execute path planning
         ros::NodeHandle moveit_action_server_node;
         ActionServer moveit_action_server;
         void action_callback(const control_msgs::FollowJointTrajectoryGoalConstPtr & goal, ActionServer* server);
 
+        //subscriber for forcing actions (Force + movement)
         ros::Subscriber sub_force_action;
         void force_callback(const geometry_msgs::PoseConstPtr &goal_pose);
 
+        //subscriber for scene potential field
         ros::Subscriber sub_potential_field;
         void potential_field_callback(const geometry_msgs::Vector3 &goal_pose);
 
