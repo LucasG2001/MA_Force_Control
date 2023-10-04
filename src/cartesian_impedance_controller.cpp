@@ -9,6 +9,7 @@
 #include <controller_interface/controller_base.h>
 #include <franka/robot_state.h>
 #include <pluginlib/class_list_macros.h>
+#include <franka_msgs/SetForceTorqueCollisionBehavior.h>
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
 
 
@@ -28,7 +29,7 @@ namespace force_control{
     inline void pseudoInverse(const Eigen::MatrixXd& M_, Eigen::MatrixXd& M_pinv_, bool damped = true) {
         double lambda_ = damped ? 0.2 : 0.0;
 
-        Eigen::JacobiSVD<Eigen::MatrixXd> svd(M_, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(M_, Eigen::ComputeFullU | Eigen::ComputeFullV);   
         Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType sing_vals_ = svd.singularValues();
         Eigen::MatrixXd S_ = M_;  // copying the dimensions of M_, its content is not needed.
         S_.setZero();
@@ -61,7 +62,7 @@ namespace force_control{
                 ros::TransportHints().reliable().tcpNoDelay());
         //movement with constrained motion in one direction, where force can be applied
         sub_force_action = node_handle.subscribe(
-                "panda_force_action", 20, &CartesianImpedanceController::force_callback, this,
+                "panda_force_action", 1, &CartesianImpedanceController::force_callback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
         //subscribes to the complete resulting force from planning scene potential field
         sub_potential_field = node_handle.subscribe(
@@ -130,15 +131,16 @@ namespace force_control{
         }
 
 
+
         dynamic_reconfigure_compliance_param_node_ =
                 ros::NodeHandle(node_handle.getNamespace() + "/dynamic_reconfigure_compliance_param_node");
 
         dynamic_server_compliance_param_ = std::make_unique<
                 dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>(
-
                 dynamic_reconfigure_compliance_param_node_);
         dynamic_server_compliance_param_->setCallback(
                 boost::bind(&CartesianImpedanceController::complianceParamCallback, this, _1, _2));
+
 
         return true;
     }
@@ -146,6 +148,7 @@ namespace force_control{
     void CartesianImpedanceController::starting(const ros::Time& /*time*/) {
         // compute initial velocity with jacobian and set x_attractor and q_d_nullspace
         // to initial configuration
+        // Create the SetFullCollisionBehavior message
         franka::RobotState initial_state = state_handle_->getRobotState();
         // get jacobian
         std::array<double, 42> jacobian_array =
@@ -166,21 +169,22 @@ namespace force_control{
         //TODO: set controller paramter callback for dynamic reconfiguration
         q_d_nullspace_ = q_initial;
         nullspace_stiffness_target_ = 0.0001;
-        K.topLeftCorner(3, 3) = 200 * Eigen::Matrix3d::Identity();
-        K.bottomRightCorner(3, 3) << 120, 0, 0, 0, 120, 0, 0, 0, 10;
-        D.topLeftCorner(3, 3) = 45 * Eigen::Matrix3d::Identity();
-        D.bottomRightCorner(3, 3) << 20, 0, 0, 0, 20, 0, 0, 0, 4;
+        K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
+        K.bottomRightCorner(3, 3) << 130, 0, 0, 0, 130, 0, 0, 0, 10;
+        D.topLeftCorner(3, 3) = 60 * Eigen::Matrix3d::Identity();
+        D.bottomRightCorner(3, 3) << 20, 0, 0, 0, 20, 0, 0, 0, 6;
         cartesian_stiffness_target_ = K;
         cartesian_damping_target_ = D;
-        max_I << 10, 10, 10, 8, 8, 3; // integrator saturation
+        max_I << 25.0, 25.0, 25.0, 45.0, 45.0, 7.0; // integrator saturation
         // uncomment the following lines if you wish to set a special inertia. Else (default) the inertia
         // is assumed to be equal to the robot inertia
         //T.topLeftCorner(3, 3) = 1 * Eigen::Matrix3d::Identity();
         //T.bottomRightCorner(3, 3) = 0.1 * Eigen::Matrix3d::Identity();
 
         //construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
-        R = 0.00001; C << 0.0, 0, 0.0;
+        R = 0.0000000001; C << 0.0, 0, 0.0;
         //free float
+
         /**
         K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0;
         cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
@@ -189,8 +193,7 @@ namespace force_control{
         //loggers
         std::ofstream F;
         F.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt");
-        //F << "time,Fx,Fy,Fz,Mx,My,Mz,w_dot_des\n";
-        F << "time dF1 dF2 dF3 dF4 dF5 dF6 Fref Fcmd kalman_estimate Fx Fy Fz Mx My Mz\n";
+        F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
         F.close();
 
         std::ofstream dtau;
@@ -202,6 +205,11 @@ namespace force_control{
         F_error.open("/home/lucas/Desktop/MA/Force_Data/friction.txt");
         F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
         F_error.close();
+
+        std::ofstream pose_error;
+        pose_error.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt");
+        pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
+        pose_error.close();
     }
 
 
@@ -227,7 +235,7 @@ namespace force_control{
         Eigen::Quaterniond orientation(transform.rotation());
 
         Lambda = (jacobian * M.inverse() * jacobian.transpose()).inverse();
-        T = Lambda; // let robot behave with it's own physical inertia
+        T = Lambda; // let robot behave with it's own physical inertia (How can we change the physical inertia and what does it mean?)
 
         // position error
         error.head(3) << position - position_d_;
@@ -241,22 +249,25 @@ namespace force_control{
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
         Eigen::Matrix<double, 6, 1> integrator_weights;
-        integrator_weights << 75, 75, 75, 35, 35, 1; //give different DoF different integrator constants
-        I_error += dt* error;
+        integrator_weights << 150.0, 150.0, 150.0, 45.0, 45.0, 15.0; //give different DoF different integrator constants
+        I_error += integrator_weights.cwiseProduct(Sm * dt* error * (1-control_mode)); //only add movable degrees of freedom and only add when not free-floating
         for (int i = 0; i < 6; i++){
             double a = I_error(i,0);
             I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation
         }
 
         // compute impedance control Force
-        F_impedance = -Lambda * T.inverse() * (D * (jacobian * dq) + K * error + integrator_weights.cwiseProduct(I_error) * (1-control_mode));
-        ROS_INFO_STREAM("Integrator Force is " << I_error);
-
+        //F_impedance = -Lambda * T.inverse() * (D * (jacobian * dq) + K * error + integrator_weights.cwiseProduct(I_error));
+        F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error); //check for numerical issues, assume Lambda = T
+        //ROS_INFO_STREAM("CURRENT position is " << position.transpose());
+        //ROS_INFO_STREAM("Integrator Force is " << I_error.transpose()); //Problem is here
+        //ROS_INFO_STREAM("Impedance Force is " << F_impedance.transpose()); //Problem is here
         //Force PID
-        F_ext = Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data());
+        F_ext = 0.4 * F_ext + 0.6 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
         I_F_error += dt*(F_contact_des - F_ext); //+ in gazebo (-) on real robot
-        F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des; //no need to multiply with Sf since it is done afterwards anyway
-
+        //F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des; //no need to multiply with Sf since it is done afterwards anyway
+        F_cmd = F_contact_des;
+        //ROS_INFO_STREAM("-------------------------------------------------------");
         // allocate variables
         Eigen::VectorXd tau_task(7), tau_nullspace(7), tau_d(7), tau_impedance(7);
         // pseudoinverse for nullspace handling
@@ -290,10 +301,12 @@ namespace force_control{
                           (2.0 * sqrt(nullspace_stiffness_)) * dq);  // if config control ) false we don't care about the joint positions
 
         //virtual walls
-        double wall_pos = 0.5;
+        /**
+        double wall_pos = 0.9;
         if (std::abs(position.y()) >= wall_pos){
             F_impedance.y() = -(500 * (position.y()-wall_pos)) + 45 *(jacobian*dq)(1,0) * 0.001 + 0.999 * F_impedance(1,0);
         }
+        **/
 
         tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;
         tau_d << tau_impedance + tau_nullspace + coriolis; //add nullspace and coriolis components to desired torque

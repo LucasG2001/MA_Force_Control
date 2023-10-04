@@ -78,10 +78,10 @@ namespace force_control {
         Eigen::Matrix<double, 6, 1> error; //pose error (6d)
         Eigen::Matrix<double, 6, 1> I_error = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
         Eigen::Matrix<double, 6, 1> max_I = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
-        Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,6); //desired contact force
-        Eigen::Matrix<double, 6, 1>  F_ext = Eigen::MatrixXd::Zero(6,6); //external forces
-        Eigen::Matrix<double, 6, 1>  F_cmd = Eigen::MatrixXd::Zero(6,6); //commanded contact force
-        Eigen::Matrix<double, 6, 1>  I_F_error = Eigen::MatrixXd::Zero(6,6); //force error integral
+        Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,1); //desired contact force
+        Eigen::Matrix<double, 6, 1>  F_ext = Eigen::MatrixXd::Zero(6,1); //external forces
+        Eigen::Matrix<double, 6, 1>  F_cmd = Eigen::MatrixXd::Zero(6,1); //commanded contact force
+        Eigen::Matrix<double, 6, 1>  I_F_error = Eigen::MatrixXd::Zero(6,1); //force error integral
         Eigen::Matrix<double, 6,6> T = IDENTITY; // impedance inertia term
         Eigen::Matrix<double, 6,6> K = IDENTITY; //impedance stiffness term
         Eigen::Matrix<double, 6,6> D = IDENTITY; //impedance damping term
@@ -94,8 +94,8 @@ namespace force_control {
         bool do_logging = false; //set if we do log values
         // end FLAGS
         double filter_params_{0.005};
-        double nullspace_stiffness_{1};
-        double nullspace_stiffness_target_{1.0};
+        double nullspace_stiffness_{0.001};
+        double nullspace_stiffness_target_{0.001};
         const double delta_tau_max_{1.0};
         Eigen::Matrix<double, 7, 1> q_d_nullspace_;
         Eigen::Vector3d position_d_;
@@ -104,7 +104,7 @@ namespace force_control {
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
         double count = 0; //logging
-        franka_hw::TriggerRate log_rate_{1000}; //logging
+        franka_hw::TriggerRate log_rate_{100}; //logging
         double dt = 0.001;
 
         //repulsion sphere around right hand;
@@ -128,7 +128,7 @@ namespace force_control {
         void equilibriumPoseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
 
         // Control mode subscriber
-        int control_mode; // 0 for normal 1 for free float
+        int control_mode = 0; // 0 for normal 1 for free float
         ros::Subscriber sub_control_mode;
         void control_mode_callback(const std_msgs::Int16ConstPtr & msg);
 
@@ -147,7 +147,7 @@ namespace force_control {
 
         //subscriber for forcing actions (Force + movement)
         ros::Subscriber sub_force_action;
-        void force_callback(const geometry_msgs::PoseConstPtr &goal_pose);
+        void force_callback(const geometry_msgs::PoseStampedConstPtr &goal_pose);
 
         //subscriber for scene potential field
         ros::Subscriber sub_potential_field;

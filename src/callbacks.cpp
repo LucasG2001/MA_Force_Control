@@ -11,6 +11,7 @@
 
 
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
+#define ZERO Eigen::MatrixXd::Zero(6,6)
 
 namespace force_control {
     void ForceActionController::action_callback(const control_msgs::FollowJointTrajectoryGoalConstPtr &goal,
@@ -125,7 +126,14 @@ namespace force_control {
 
     void CartesianImpedanceController::equilibriumPoseCallback(
             const geometry_msgs::PoseStampedConstPtr &msg) {
-        I_error *= 0; //clear integrator
+
+        Sm = IDENTITY;
+        Sf = ZERO;
+        if (msg->header.frame_id == "clear_integrator"){
+            I_error *= 0; //clear integrator
+            //ROS_INFO("Cleared Integrator");
+        }
+
         config_control = false;
         std::lock_guard<std::mutex> position_d_target_mutex_lock(
                 position_and_orientation_d_target_mutex_);
@@ -140,19 +148,22 @@ namespace force_control {
     }
 
     void CartesianImpedanceController::control_mode_callback(const std_msgs::Int16ConstPtr &msg) {
-        I_error *= 0; //clear integrator
+        I_error = Eigen::MatrixXd::Zero(6,1);; //clear integrator
         ROS_INFO("switching control mode");
         control_mode = msg->data;
         if(control_mode == 1){
             K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0;
             cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
+            F_contact_des *= 0;
+            Sf = ZERO;
+            Sm = IDENTITY; //delete all previous forcing commands
         }
         else if (control_mode == 0){
-            nullspace_stiffness_target_ = 0.00001;
-            cartesian_stiffness_target_.topLeftCorner(3, 3) = 200 * Eigen::Matrix3d::Identity();
-            cartesian_stiffness_target_.bottomRightCorner(3, 3) << 120, 0, 0, 0, 120, 0, 0, 0, 10;
-            cartesian_damping_target_.topLeftCorner(3, 3) = 45 * Eigen::Matrix3d::Identity();
-            cartesian_damping_target_.bottomRightCorner(3, 3) << 20, 0, 0, 0, 20, 0, 0, 0, 4;
+            nullspace_stiffness_target_ = 0.0001;
+            cartesian_stiffness_target_.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
+            cartesian_stiffness_target_.bottomRightCorner(3, 3) << 130, 0, 0, 0, 130, 0, 0, 0, 10;
+            cartesian_damping_target_.topLeftCorner(3, 3) = 60 * Eigen::Matrix3d::Identity();
+            cartesian_damping_target_.bottomRightCorner(3, 3) << 20, 0, 0, 0, 20, 0, 0, 0, 6;
         }
 
     }
@@ -195,7 +206,7 @@ namespace force_control {
 
     void CartesianImpedanceController::action_callback(const control_msgs::FollowJointTrajectoryGoalConstPtr &goal,
                                                        ActionServer *server) {
-        I_error *= 0; //clear integrator
+        I_error = Eigen::MatrixXd::Zero(6,1);; //clear integrator
         ROS_INFO("got a message");
         do_logging = false;
         count = 0; //reset count time
@@ -244,28 +255,31 @@ namespace force_control {
         filter_params_ = 0.005; //set filter back
     }
 
-    void CartesianImpedanceController::force_callback(const geometry_msgs::PoseConstPtr &goal_pose) {
+    void CartesianImpedanceController::force_callback(const geometry_msgs::PoseStampedConstPtr &goal_pose) {
         /**  **/
         ROS_INFO("got a message: apply force");
+        if (goal_pose->header.frame_id == "clear_integrator"){
+            I_error *= 0; //clear integrator
+            ROS_INFO("Cleared Integrator");
+        }
         do_logging = true;
         //reset file
+        /**
         std::ofstream F;
         F.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt");
-        //F << "time,Fx,Fy,Fz,Mx,My,Mz,w_dot_des\n";
-        F << "time dF1 dF2 dF3 dF4 dF5 dF6 Fref Fcmd kalman_estimate Fx Fy Fz Mx My Mz\n";
+        F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
         F.close();
+         **/
         config_control = false; // do not explicitly control q-configuration in nullspace
         Eigen::Matrix<double, 6, 1> force_directions; force_directions << 0, 0, 1, 0, 0, 0; //apply force in negative z-direction
-        F_contact_des = force_directions * -5.0;
+        F_contact_des = force_directions * -10.0;
         Sf = force_directions.asDiagonal();
         Sm = IDENTITY - Sf;
-        //set new position reference (increment position for testing purposes and do not change orientation)
-        position_d_target_.x() = goal_pose->position.x;
-        position_d_target_.y() = goal_pose->position.y;
-        position_d_target_.z() = goal_pose->position.z;
+        position_d_target_ << goal_pose->pose.position.x, goal_pose->pose.position.y, goal_pose->pose.position.z;
+        ROS_INFO_STREAM("Forcing Goal Pose is " << position_d_target_.transpose());
         Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
-        orientation_d_target_.coeffs() << goal_pose->orientation.x, goal_pose->orientation.y,
-                goal_pose->orientation.z, goal_pose->orientation.w;
+        orientation_d_target_.coeffs() << goal_pose->pose.orientation.x, goal_pose->pose.orientation.y,
+                goal_pose->pose.orientation.z, goal_pose->pose.orientation.w;
         if (last_orientation_d_target.coeffs().dot(orientation_d_target_.coeffs()) < 0.0) {
             orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
         }

@@ -22,19 +22,26 @@ namespace force_control {
     }
 
     void CartesianImpedanceController::log_values_to_file(bool log){
+        Eigen::Matrix<double, 6, 1> integrator_weights;
         if(log){
-            std::ofstream F_log, F_error;
+            std::ofstream F_log, F_error, pose_error;
             F_log.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt", std::ios::app);
             if (F_log.is_open()){
-                F_log << count << "," << 0 * F_ext.transpose() << "," << F_contact_des(2,0) << "," << F_cmd(2,0) << "," << 0 << "," << F_ext.transpose() << "\n";
+                F_log << count << "," << F_contact_des(2,0) << "," << F_cmd(2,0) << "," << F_ext.transpose() << "," << F_impedance.transpose() << "\n";
             }
 
             F_log.close();
             F_error.open("/home/lucas/Desktop/MA/Force_Data/friction.txt", std::ios::app);
             if (F_error.is_open()){
-                F_error << count << "," << F_repulsion.transpose() << "," << 0 << "," << "\n";
+                F_error << count << "," << I_error.transpose() << "," << 0 << "," << "\n";
             }
             F_error.close();
+            Eigen::Vector3d desired_orientation = orientation_d_.toRotationMatrix().eulerAngles(0,1,2);
+            pose_error.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt", std::ios::app);
+            if (pose_error.is_open()){
+                pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
+            }
+            pose_error.close();
 
             count += 1;
         }
