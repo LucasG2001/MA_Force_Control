@@ -126,33 +126,32 @@ namespace force_control {
 
     void CartesianImpedanceController::equilibriumPoseCallback(
             const geometry_msgs::PoseStampedConstPtr &msg) {
+        I_error = Eigen::MatrixXd::Zero(6,1); //clear integrator
+        //if (msg->header.frame_id != "grasp"){
+            Sm = IDENTITY;
+            Sf = ZERO;
+            config_control = false;
+            std::lock_guard<std::mutex> position_d_target_mutex_lock(
+                    position_and_orientation_d_target_mutex_);
+            position_d_target_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+            Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
+            orientation_d_target_.coeffs() << msg->pose.orientation.x, msg->pose.orientation.y,
+                    msg->pose.orientation.z, msg->pose.orientation.w;
+            if (last_orientation_d_target.coeffs().dot(orientation_d_target_.coeffs()) < 0.0) {
+                orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
+            }
+            ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << " " << orientation_d_target_.coeffs());
+        //} //if clause
+        //else{ ros::Duration(0.001).sleep(); }
 
-        Sm = IDENTITY;
-        Sf = ZERO;
-        if (msg->header.frame_id == "clear_integrator"){
-            I_error *= 0; //clear integrator
-            //ROS_INFO("Cleared Integrator");
-        }
-
-        config_control = false;
-        std::lock_guard<std::mutex> position_d_target_mutex_lock(
-                position_and_orientation_d_target_mutex_);
-        position_d_target_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
-        Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
-        orientation_d_target_.coeffs() << msg->pose.orientation.x, msg->pose.orientation.y,
-                msg->pose.orientation.z, msg->pose.orientation.w;
-        if (last_orientation_d_target.coeffs().dot(orientation_d_target_.coeffs()) < 0.0) {
-            orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
-        }
-        ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << " " << orientation_d_target_.coeffs());
-    }
+    } //callback
 
     void CartesianImpedanceController::control_mode_callback(const std_msgs::Int16ConstPtr &msg) {
-        I_error = Eigen::MatrixXd::Zero(6,1);; //clear integrator
+        I_error = Eigen::MatrixXd::Zero(6,1); //clear integrator
         ROS_INFO("switching control mode");
         control_mode = msg->data;
         if(control_mode == 1){
-            K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0;
+            K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0; //this wil also effectively set F_repulsion to 0
             cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
             F_contact_des *= 0;
             Sf = ZERO;
@@ -197,9 +196,10 @@ namespace force_control {
     void CartesianImpedanceController::HandPoseCallback(const geometry_msgs::Point &right_hand_pos) {
         ROS_INFO("received hand position");
         R = 0.35;
-        C.x() = right_hand_pos.x;
-        C.y() = right_hand_pos.y;
-        C.z() = right_hand_pos.z;
+        //exponential MA filter
+        C.x() = 0.8 * C.x() + 0.2 * right_hand_pos.x;
+        C.y() = 0.8 * C.y() + 0.2 * right_hand_pos.y;
+        C.z() = 0.8 * C.z() + 0.2 * right_hand_pos.z;
 
 
     }
@@ -257,9 +257,10 @@ namespace force_control {
 
     void CartesianImpedanceController::force_callback(const geometry_msgs::PoseStampedConstPtr &goal_pose) {
         /**  **/
+        I_error *= 0.0;
         ROS_INFO("got a message: apply force");
         if (goal_pose->header.frame_id == "clear_integrator"){
-            I_error *= 0; //clear integrator
+            //I_error *= 0; //clear integrator
             ROS_INFO("Cleared Integrator");
         }
         do_logging = true;
@@ -287,7 +288,7 @@ namespace force_control {
     }
 
     void CartesianImpedanceController::potential_field_callback(const geometry_msgs::Vector3 &resulting_force) {
-        ROS_INFO("got a message: updating potential field");
+        //ROS_INFO("got a message: updating potential field");
         F_potential.x() = resulting_force.x;
         F_potential.y() = resulting_force.y;
         F_potential.z() = resulting_force.z;

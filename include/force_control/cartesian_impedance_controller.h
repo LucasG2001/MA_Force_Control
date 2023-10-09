@@ -104,10 +104,11 @@ namespace force_control {
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
         double count = 0; //logging
-        franka_hw::TriggerRate log_rate_{100}; //logging
+        franka_hw::TriggerRate log_rate_{50}; //logging
         double dt = 0.001;
 
         //repulsion sphere around right hand;
+        bool isInSphere = false;
         double R;
         Eigen::Vector3d C;
         Eigen::Matrix<double, 3, 3> repulsion_K, repulsion_D;

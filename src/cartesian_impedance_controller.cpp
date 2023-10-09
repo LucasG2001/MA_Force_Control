@@ -175,7 +175,7 @@ namespace force_control{
         D.bottomRightCorner(3, 3) << 20, 0, 0, 0, 20, 0, 0, 0, 6;
         cartesian_stiffness_target_ = K;
         cartesian_damping_target_ = D;
-        max_I << 25.0, 25.0, 25.0, 45.0, 45.0, 7.0; // integrator saturation
+        max_I << 30.0, 30.0, 30.0, 50.0, 50.0, 2.0; // integrator saturation
         // uncomment the following lines if you wish to set a special inertia. Else (default) the inertia
         // is assumed to be equal to the robot inertia
         //T.topLeftCorner(3, 3) = 1 * Eigen::Matrix3d::Identity();
@@ -184,11 +184,12 @@ namespace force_control{
         //construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
         R = 0.0000000001; C << 0.0, 0, 0.0;
         //free float
-
+        //leave this commented out if you don't want to free float the end-effector
         /**
         K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0;
         cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
         **/
+
 
         //loggers
         std::ofstream F;
@@ -249,8 +250,9 @@ namespace force_control{
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
         Eigen::Matrix<double, 6, 1> integrator_weights;
-        integrator_weights << 150.0, 150.0, 150.0, 45.0, 45.0, 15.0; //give different DoF different integrator constants
-        I_error += integrator_weights.cwiseProduct(Sm * dt* error * (1-control_mode)); //only add movable degrees of freedom and only add when not free-floating
+        integrator_weights << 75.0, 75.0, 75.0, 120.0, 120.0, 15.0; //give different DoF different integrator constants
+        //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
+        I_error += (1-isInSphere) * integrator_weights.cwiseProduct(Sm * dt* error * (1-control_mode));
         for (int i = 0; i < 6; i++){
             double a = I_error(i,0);
             I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation
@@ -263,10 +265,10 @@ namespace force_control{
         //ROS_INFO_STREAM("Integrator Force is " << I_error.transpose()); //Problem is here
         //ROS_INFO_STREAM("Impedance Force is " << F_impedance.transpose()); //Problem is here
         //Force PID
-        F_ext = 0.4 * F_ext + 0.6 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
+        F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
         I_F_error += dt*(F_contact_des - F_ext); //+ in gazebo (-) on real robot
-        //F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des; //no need to multiply with Sf since it is done afterwards anyway
-        F_cmd = F_contact_des;
+        F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des; //no need to multiply with Sf since it is done afterwards anyway
+        //F_cmd = F_contact_des;
         //ROS_INFO_STREAM("-------------------------------------------------------");
         // allocate variables
         Eigen::VectorXd tau_task(7), tau_nullspace(7), tau_d(7), tau_impedance(7);
@@ -278,12 +280,13 @@ namespace force_control{
         double penetration_depth = std::max(0.0, R-r.norm());
         Eigen::Vector3d v = (jacobian*dq).head(3);
         v = v.dot(r)/r.squaredNorm() * r; //projected velocity
-        bool isInSphere = r.norm() < R;
+        isInSphere = r.norm() < R;
         Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
-        double r_eq = 0.8 * R;
+        double r_eq = 0.75 * R;
         //update repulsive stiffnesses
         repulsion_K = (K.topLeftCorner(3,3) * r_eq/(R-r_eq))*Eigen::MatrixXd::Identity(3,3); //30 for free floating operation, else use K
-        repulsion_D = 2 * (repulsion_K).array().sqrt();
+        repulsion_D = 3.0 * (repulsion_K).array().sqrt();
+        // TODO smooth K changes
 
         if(isInSphere){
             F_repulsion.head(3) = 0.99* (repulsion_K * penetration_depth * r/r.norm() - repulsion_D * v) + 0.01 * F_repulsion.head(3); //assume Theta = Lambda
@@ -318,7 +321,8 @@ namespace force_control{
         update_stiffness_and_references();
 
         //logging
-        log_values_to_file(log_rate_() && do_logging);
+        //log_values_to_file(log_rate_() && do_logging);
+        log_values_to_file(log_rate_());
     }
 
 
