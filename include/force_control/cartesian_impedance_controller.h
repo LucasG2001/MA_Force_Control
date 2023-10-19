@@ -79,6 +79,7 @@ namespace force_control {
         Eigen::Matrix<double, 6, 1> I_error = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
         Eigen::Matrix<double, 6, 1> max_I = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
         Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,1); //desired contact force
+	    Eigen::Matrix<double, 6, 1>  F_contact_target = Eigen::MatrixXd::Zero(6,1); //desired contact force used for filtering
         Eigen::Matrix<double, 6, 1>  F_ext = Eigen::MatrixXd::Zero(6,1); //external forces
         Eigen::Matrix<double, 6, 1>  F_cmd = Eigen::MatrixXd::Zero(6,1); //commanded contact force
         Eigen::Matrix<double, 6, 1>  I_F_error = Eigen::MatrixXd::Zero(6,1); //force error integral
@@ -109,13 +110,17 @@ namespace force_control {
 
         //repulsion sphere around right hand;
         bool isInSphere = false;
-        double R;
+        double R; //safety bubble radius
+        Eigen::Vector3d r; //distance EE to safety bubble position - C
+        Eigen::Vector3d r_dot; //velocity EE to safety bubble position - C
         Eigen::Vector3d C;
+        Eigen::Vector3d r_last;
+        double rho; // absolute value of r
+        double rho_last;
+        double rho_dot;
         Eigen::Matrix<double, 3, 3> repulsion_K, repulsion_D;
         //all included Forces
-        Eigen::Matrix<double, 6, 1> F_repulsion;
-        Eigen::Matrix<double, 6, 1> F_potential = Eigen::MatrixXd::Zero(6,1);
-        Eigen::Matrix<double, 6, 1> F_impedance;
+        Eigen::Matrix<double, 6, 1> F_repulsion, F_potential, F_impedance;
 
         // Dynamic reconfigure
         std::unique_ptr<dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>

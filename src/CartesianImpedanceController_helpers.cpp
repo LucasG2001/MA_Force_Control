@@ -18,13 +18,14 @@ namespace force_control {
                 position_and_orientation_d_target_mutex_);
         position_d_ = filter_params_ * position_d_target_ + (1.0 - filter_params_) * position_d_;
         orientation_d_ = orientation_d_.slerp(filter_params_, orientation_d_target_);
+		F_contact_des = 0.05 * F_contact_target + 0.95 * F_contact_des;
 
     }
 
     void CartesianImpedanceController::log_values_to_file(bool log){
         Eigen::Matrix<double, 6, 1> integrator_weights;
         if(log){
-            std::ofstream F_log, F_error, pose_error;
+            std::ofstream F_log, F_error, pose_error, hand_tracking, potential_field;
             F_log.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt", std::ios::app);
             if (F_log.is_open()){
                 F_log << count << "," << F_contact_des(2,0) << "," << F_cmd(2,0) << "," << F_ext.transpose() << "," << F_impedance.transpose() << "\n";
@@ -42,6 +43,18 @@ namespace force_control {
                 pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
             }
             pose_error.close();
+
+            hand_tracking.open("/home/lucas/Desktop/MA/Force_Data/hand_tracking.txt", std::ios::app);
+            if (hand_tracking.is_open()){
+                hand_tracking << count << "," << C.transpose() << "," << r.transpose() << ","  << F_repulsion.head(3).transpose() << "\n";
+            }
+            hand_tracking.close();
+
+            potential_field.open("/home/lucas/Desktop/MA/Force_Data/potential_force.txt", std::ios::app);
+            if (potential_field.is_open()){
+                potential_field << count << "," << F_potential.head(3).transpose() << "\n";
+            }
+            potential_field.close();
 
             count += 1;
         }

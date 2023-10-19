@@ -153,16 +153,16 @@ namespace force_control {
         if(control_mode == 1){
             K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0; //this wil also effectively set F_repulsion to 0
             cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
-            F_contact_des *= 0;
+            F_contact_target *= 0;
             Sf = ZERO;
             Sm = IDENTITY; //delete all previous forcing commands
         }
         else if (control_mode == 0){
             nullspace_stiffness_target_ = 0.0001;
             cartesian_stiffness_target_.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
-            cartesian_stiffness_target_.bottomRightCorner(3, 3) << 130, 0, 0, 0, 130, 0, 0, 0, 10;
-            cartesian_damping_target_.topLeftCorner(3, 3) = 60 * Eigen::Matrix3d::Identity();
-            cartesian_damping_target_.bottomRightCorner(3, 3) << 20, 0, 0, 0, 20, 0, 0, 0, 6;
+            cartesian_stiffness_target_.bottomRightCorner(3, 3) << 80, 0, 0, 0, 80, 0, 0, 0, 10;
+            cartesian_damping_target_.topLeftCorner(3, 3) = 55 * Eigen::Matrix3d::Identity();
+            cartesian_damping_target_.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
         }
 
     }
@@ -194,12 +194,20 @@ namespace force_control {
     }
 
     void CartesianImpedanceController::HandPoseCallback(const geometry_msgs::Point &right_hand_pos) {
+		do_logging = true;
         ROS_INFO("received hand position");
         R = 0.35;
         //exponential MA filter
-        C.x() = 0.8 * C.x() + 0.2 * right_hand_pos.x;
-        C.y() = 0.8 * C.y() + 0.2 * right_hand_pos.y;
-        C.z() = 0.8 * C.z() + 0.2 * right_hand_pos.z;
+		/**
+        C.x() = 0.05 * right_hand_pos.x + 0.95 * C.x(); //smoothing
+        C.y() = 0.05 * right_hand_pos.y + 0.95 * C.y();
+        C.z() = 0.05 * right_hand_pos.z + 0.95 * C.z();
+        **/
+
+	    C.x() = right_hand_pos.x; //smoothing
+	    C.y() = right_hand_pos.y;
+	    C.z() = right_hand_pos.z;
+
 
 
     }
@@ -213,7 +221,7 @@ namespace force_control {
         config_control = true; // do explicitly control q-configuration in nullspace
         ros::Rate rate = 150;
         ros::Time callback_start = ros::Time::now(); // Get the trajectory points from the goal
-        F_contact_des << 0, 0, 0, 0, 0, 0;
+        F_contact_target << 0, 0, 0, 0, 0, 0;
         filter_params_ = 0.999; //remove filtering of position reference during moveit trajectory
         Sm = IDENTITY;
         Sf = IDENTITY - Sm;
@@ -259,10 +267,6 @@ namespace force_control {
         /**  **/
         I_error *= 0.0;
         ROS_INFO("got a message: apply force");
-        if (goal_pose->header.frame_id == "clear_integrator"){
-            //I_error *= 0; //clear integrator
-            ROS_INFO("Cleared Integrator");
-        }
         do_logging = true;
         //reset file
         /**
@@ -273,7 +277,7 @@ namespace force_control {
          **/
         config_control = false; // do not explicitly control q-configuration in nullspace
         Eigen::Matrix<double, 6, 1> force_directions; force_directions << 0, 0, 1, 0, 0, 0; //apply force in negative z-direction
-        F_contact_des = force_directions * -10.0;
+        F_contact_target = force_directions * -10.0;
         Sf = force_directions.asDiagonal();
         Sm = IDENTITY - Sf;
         position_d_target_ << goal_pose->pose.position.x, goal_pose->pose.position.y, goal_pose->pose.position.z;
@@ -289,9 +293,9 @@ namespace force_control {
 
     void CartesianImpedanceController::potential_field_callback(const geometry_msgs::Vector3 &resulting_force) {
         //ROS_INFO("got a message: updating potential field");
-        F_potential.x() = resulting_force.x;
-        F_potential.y() = resulting_force.y;
-        F_potential.z() = resulting_force.z;
+        F_potential.x() = 0.2* resulting_force.x + 0.8 * F_potential.x(); //smooth
+        F_potential.y() = 0.2* resulting_force.y + 0.8 * F_potential.y();
+        F_potential.z() = 0.2* resulting_force.z + 0.8 * F_potential.z();
 
     }
 } //namespace force_control
