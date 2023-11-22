@@ -58,6 +58,7 @@ namespace force_control {
         void update(const ros::Time&, const ros::Duration& period) override;
         void update_stiffness_and_references();
         void log_values_to_file(bool do_logging);
+        Eigen::VectorXd calculate_tau_friction(const Eigen::Matrix<double, 7, 1> dq);
 
     private:
         // Saturation
@@ -88,10 +89,16 @@ namespace force_control {
         Eigen::Matrix<double, 6,6> cartesian_stiffness_target_; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_damping_target_; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_inertia_target_; //impedance damping term
+        Eigen::Matrix<double, 7,1> tau_measured = Eigen::MatrixXd::Zero(7,1); //Measured tau for logging
+        Eigen::Matrix<double, 7,1> vel_measured = Eigen::MatrixXd::Zero(7,1); //Measured velocity for logging
+
 
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
-        bool do_logging = false; //set if we do log values
+        bool do_logging = true; //set if we do log values
+        bool test = true; //Set if you want to test particular joint
+        int joint = 0; //Number of joint to test
+        int timestamp = 0;
         // end FLAGS
         double filter_params_{0.005};
         double nullspace_stiffness_{0.001};

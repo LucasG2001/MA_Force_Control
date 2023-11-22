@@ -141,6 +141,10 @@ namespace force_control{
         dynamic_server_compliance_param_->setCallback(
                 boost::bind(&CartesianImpedanceController::complianceParamCallback, this, _1, _2));
 
+        std::cout << "Do you want to enter test mode? (true/false)";
+        std::cin >> test;
+        std::cout << "Which joint do you want to test? (0-7)";
+        std::cin >> joint;
 
         return true;
     }
@@ -190,27 +194,26 @@ namespace force_control{
         cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
         **/
 
-
         //loggers
-        std::ofstream F;
-        F.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt");
-        F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
-        F.close();
+        // std::ofstream F;
+        // F.open("/Home/Documents/BA/log/joint_0");
+        // F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
+        // F.close();
 
-        std::ofstream dtau;
-        dtau.open("/home/lucas/Desktop/MA/Force_Data/dtau.txt");
-        dtau << "time dtau1 dtau2 dtau3 dtau4 dtau5 dtau6 dtau7 dtau_abs\n";
-        dtau.close();
+        std::ofstream tau;
+        tau.open("/home/viktor/Documents/BA/log/tau.txt");
+        tau << "time tau1 tau2 tau3 tau4 tau5 tau6 tau7 tau_abs\n";
+        tau.close();
 
-        std::ofstream F_error;
-        F_error.open("/home/lucas/Desktop/MA/Force_Data/friction.txt");
-        F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
-        F_error.close();
+        // std::ofstream F_error;
+        // F_error.open("/Home/Documents/BA/log/joint_0");
+        // F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
+        // F_error.close();
 
-        std::ofstream pose_error;
-        pose_error.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt");
-        pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
-        pose_error.close();
+        // std::ofstream pose_error;
+        // pose_error.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt");
+        // pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
+        // pose_error.close();
     }
 
 
@@ -311,18 +314,56 @@ namespace force_control{
         }
         **/
 
+    
+       Eigen::VectorXd tau_friction = calculate_tau_friction(dq); //Gets friction forces for current state
+
+
         tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;
-        tau_d << tau_impedance + tau_nullspace + coriolis; //add nullspace and coriolis components to desired torque
-        tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities
+
+        // If no movement wanted by impedance_force_control, no friction-dependend force will be applied
+        for (int i = 0; i < 7; i++){
+            if (std::abs(tau_impedance(i)) <= 0.1){
+                tau_friction(i) = 0;
+            }
+        }
+
+        //use for testing:
+
+        if (test){ //Only set torques for the joint you want to test
+            for (int i = 0; i < 7; i++){
+                if (i != joint){
+                    tau_d(i) = tau_nullspace(i) + coriolis(i);
+                }
+            }
+        
+
+            tau_d(joint) = timestamp * 0.2 + tau_nullspace(joint) + coriolis(joint);
+        
+            //If movement > 0, no torques applied anymore
+            if (std::abs(dq(joint)) > .1){
+            tau_d(joint) = tau_nullspace(joint) + coriolis(joint);
+            timestamp = 0;
+            }
+        }
+        else{
+            tau_d << tau_impedance + tau_nullspace + coriolis/*  + tau_friction*/; //add nullspace, coriolis and friction components to desired torque
+        }
+
+        tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
+
         for (size_t i = 0; i < 7; ++i) {
             joint_handles_[i].setCommand(tau_d(i));
         }
 
         update_stiffness_and_references();
 
+        timestamp++;
+
         //logging
         //log_values_to_file(log_rate_() && do_logging);
-        log_values_to_file(log_rate_());
+        tau_measured = tau_J_d;
+        vel_measured = dq;
+        log_values_to_file(do_logging);
     }
 
 

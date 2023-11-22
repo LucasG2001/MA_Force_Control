@@ -31,7 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(Franka 0.9.0 QUIET)
 if(NOT Franka_FOUND)
-  find_package(Franka 0.8.0 REQUIRED)
+  find_package(Franka 0.6.0 REQUIRED)
 endif()
 
 # merge Franka + INCLUDE_DIRS in topological order
@@ -43,7 +43,7 @@ add_message_files(FILES
 
 add_action_files(
         DIRECTORY action
-        FILES EquilibriumPose.action
+        FILES 
 )
 
 generate_messages(
@@ -89,9 +89,7 @@ add_library(force_control
         src/ForceActionController_helpers.cpp
         src/cartesian_impedance_controller.cpp
         src/callbacks.cpp
-        src/CartesianImpedanceController_helpers.cpp
-        src/equilibrium_pose_server.cpp
-        ../../devel/include/force_control/EquilibriumPoseAction.h)
+        src/CartesianImpedanceController_helpers.cpp)
 
 
 add_dependencies(force_control
