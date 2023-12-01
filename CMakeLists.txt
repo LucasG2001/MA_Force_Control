@@ -91,7 +91,8 @@ add_library(force_control
         src/callbacks.cpp
         src/CartesianImpedanceController_helpers.cpp
         src/equilibrium_pose_server.cpp
-        ../../devel/include/force_control/EquilibriumPoseAction.h)
+        src/ImpedanceParameterController.cpp
+        ../../devel/include/force_control/EquilibriumPoseAction.h include/force_control/ActionPrimitive.h src/impedance_setter_node.cpp src/ActionPrimitive.cpp include/force_control/AtomicTasks.h src/AtomicTasks.cpp include/force_control/ImpedanceParameterController.h src/ImpedanceParameterController.cpp)
 
 
 add_dependencies(force_control
@@ -101,6 +102,10 @@ add_dependencies(force_control
   ${PROJECT_NAME}_gencpp
   ${PROJECT_NAME}_gencfg
 )
+
+add_executable(impedance_param_controller src/impedance_setter_node.cpp)
+target_link_libraries(impedance_param_controller ${catkin_LIBRARIES}
+        force_control)
 
 target_link_libraries(force_control PUBLIC
   ${Franka_LIBRARIES}

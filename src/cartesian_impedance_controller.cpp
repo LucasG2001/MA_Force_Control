@@ -247,7 +247,8 @@ namespace force_control{
 
         Lambda = (jacobian * M.inverse() * jacobian.transpose()).inverse();
         T = Lambda; // let robot behave with it's own physical inertia (How can we change the physical inertia and what does it mean?)
-
+		//T = 0.1 * Lambda; //lightweight robot
+		//T = 5*Lambda; //heavy robot
         // position error
         error.head(3) << position - position_d_;
         // orientation error
@@ -268,15 +269,14 @@ namespace force_control{
             I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation
         }
 
-        // compute impedance control Force
-        //F_impedance = -Lambda * T.inverse() * (D * (jacobian * dq) + K * error + integrator_weights.cwiseProduct(I_error));
-        F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error); //check for numerical issues, assume Lambda = T
         //Force PID
         F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
         I_F_error += dt * Sf* (F_contact_des - F_ext); //+ in gazebo (-) on real robot //need to multiply with Sf here, else it gets accumulated nonstop
         F_cmd = 0.4 * (F_contact_des - F_ext) + 0.9 * I_F_error + 0.9 * F_contact_des; //F_contact_des is filtered from F_contact_target
         F_cmd = Sf * F_cmd;
-        //F_cmd = F_contact_des;
+	    // compute impedance control Force
+	    F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error);
+		//F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
         // allocate variables
         Eigen::VectorXd tau_task(7), tau_nullspace(7), tau_d(7), tau_impedance(7);
         // pseudoinverse for nullspace handling

@@ -5,7 +5,7 @@
 #ifndef FORCE_CONTROL_CARTESIAN_IMPEDANCE_CONTROLLER_H
 #define FORCE_CONTROL_CARTESIAN_IMPEDANCE_CONTROLLER_H
 
-#endif //FORCE_CONTROL_CARTESIAN_IMPEDANCE_CONTROLLER_H
+#endif
 // Copyright (c) 2017 Franka Emika GmbH
 // Use of this source code is governed by the Apache-2.0 license, see LICENSE
 #pragma once
@@ -92,7 +92,7 @@ namespace force_control {
 
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
-        bool do_logging = false; //set if we do log values
+        bool do_logging = true; //set if we do log values
         // end FLAGS
         double filter_params_{0.005};
         double nullspace_stiffness_{0.001};

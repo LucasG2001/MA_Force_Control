@@ -10,7 +10,7 @@ set(force_control_EXEC_DEPENDS "franka_control" "franka_description" "message_ru
 set(force_control_RUN_DEPENDS "franka_control" "franka_description" "message_runtime" "rospy" "controller_interface" "dynamic_reconfigure" "franka_example_controllers" "eigen_conversions" "franka_hw" "franka_gripper" "geometry_msgs" "hardware_interface" "joint_limits_interface" "tf" "tf_conversions" "libfranka" "pluginlib" "realtime_tools" "roscpp" "urdf" "visualization_msgs" "actionlib" "spdlog" "actionlib_msgs")
 set(force_control_TEST_DEPENDS )
 set(force_control_DOC_DEPENDS )
-set(force_control_URL_WEBSITE "http://wiki.ros.org/force_control")
+set(force_control_URL_WEBSITE "")
 set(force_control_URL_BUGTRACKER "https://github.com/frankaemika/franka_ros/issues")
 set(force_control_URL_REPOSITORY "https://github.com/frankaemika/franka_ros")
 set(force_control_DEPRECATED "")
