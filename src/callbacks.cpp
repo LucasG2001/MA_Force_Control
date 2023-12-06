@@ -127,7 +127,6 @@ namespace force_control {
     void CartesianImpedanceController::equilibriumPoseCallback(
             const geometry_msgs::PoseStampedConstPtr &msg) {
         I_error = Eigen::MatrixXd::Zero(6,1); //clear integrator
-        //if (msg->header.frame_id != "grasp"){
             Sm = IDENTITY;
             Sf = ZERO;
             config_control = false;
@@ -141,9 +140,6 @@ namespace force_control {
                 orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
             }
             ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << " " << orientation_d_target_.coeffs());
-        //} //if clause
-        //else{ ros::Duration(0.001).sleep(); }
-
     } //callback
 
     void CartesianImpedanceController::control_mode_callback(const std_msgs::Int16ConstPtr &msg) {
