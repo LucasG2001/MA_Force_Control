@@ -111,7 +111,6 @@
 /home/lucas/catkin_ws/src/force_control/cmake-build-debug/CMakeFiles/force_control_genpy.dir
 /home/lucas/catkin_ws/src/force_control/cmake-build-debug/CMakeFiles/force_control_gencfg.dir
 /home/lucas/catkin_ws/src/force_control/cmake-build-debug/CMakeFiles/force_control.dir
-/home/lucas/catkin_ws/src/force_control/cmake-build-debug/CMakeFiles/impedance_param_controller.dir
 /home/lucas/catkin_ws/src/force_control/cmake-build-debug/CMakeFiles/test.dir
 /home/lucas/catkin_ws/src/force_control/cmake-build-debug/CMakeFiles/edit_cache.dir
 /home/lucas/catkin_ws/src/force_control/cmake-build-debug/CMakeFiles/rebuild_cache.dir
