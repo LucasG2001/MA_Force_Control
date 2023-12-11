@@ -139,7 +139,7 @@ namespace force_control {
             if (last_orientation_d_target.coeffs().dot(orientation_d_target_.coeffs()) < 0.0) {
                 orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
             }
-            ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << " " << orientation_d_target_.coeffs());
+            ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << "\n" << orientation_d_target_.coeffs());
     } //callback
 
     void CartesianImpedanceController::control_mode_callback(const std_msgs::Int16ConstPtr &msg) {
