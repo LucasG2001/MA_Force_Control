@@ -38,7 +38,7 @@ namespace force_control{
             S_(i, i) = (sing_vals_(i)) / (sing_vals_(i) * sing_vals_(i) + lambda_ * lambda_);
 
         M_pinv_ = Eigen::MatrixXd(svd.matrixV() * S_.transpose() * svd.matrixU().transpose());
-    }
+    }//Calculates the pseudoinverse of M_ and saves it to M_pinv_
 
     bool CartesianImpedanceController::init(hardware_interface::RobotHW* robot_hw,
                                                    ros::NodeHandle& node_handle) {
@@ -68,6 +68,15 @@ namespace force_control{
         sub_potential_field = node_handle.subscribe(
                 "/resulting_force", 20, &CartesianImpedanceController::potential_field_callback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
+        //subscribes to the test-node from demo_classes.cpp, which tells whether test-mode is active (1 = testmode)
+        sub_test = node_handle.subscribe(
+                "/test_topic", 1, &CartesianImpedanceController::test_callback, this,
+                ros::TransportHints().reliable().tcpNoDelay());
+        //subscribes to the friction-node from demo_classes.cpp, which tells whether friction-compensation is on (1 = on)
+        sub_friction = node_handle.subscribe(
+                "/friction_topic", 1, &CartesianImpedanceController::friction_callback, this,
+                ros::TransportHints().reliable().tcpNoDelay());
+                
 
         std::string arm_id;
         if (!node_handle.getParam("arm_id", arm_id)) {
@@ -141,10 +150,6 @@ namespace force_control{
         dynamic_server_compliance_param_->setCallback(
                 boost::bind(&CartesianImpedanceController::complianceParamCallback, this, _1, _2));
 
-        std::cout << "Do you want to enter test mode? (true/false)";
-        std::cin >> test;
-        std::cout << "Which joint do you want to test? (0-7)";
-        std::cin >> joint;
 
         return true;
     }
@@ -180,6 +185,7 @@ namespace force_control{
         cartesian_stiffness_target_ = K;
         cartesian_damping_target_ = D;
         max_I << 30.0, 30.0, 30.0, 50.0, 50.0, 2.0; // integrator saturation
+
         // uncomment the following lines if you wish to set a special inertia. Else (default) the inertia
         // is assumed to be equal to the robot inertia
         //T.topLeftCorner(3, 3) = 1 * Eigen::Matrix3d::Identity();
@@ -187,6 +193,7 @@ namespace force_control{
 
         //construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
         R = 0.0000000001; C << 0.0, 0, 0.0;
+
         //free float
         //leave this commented out if you don't want to free float the end-effector
         /**
@@ -195,6 +202,7 @@ namespace force_control{
         **/
 
         //loggers
+
         // std::ofstream F;
         // F.open("/Home/Documents/BA/log/joint_0");
         // F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
@@ -202,8 +210,30 @@ namespace force_control{
 
         std::ofstream tau;
         tau.open("/home/viktor/Documents/BA/log/tau.txt");
-        tau << "time tau1 tau2 tau3 tau4 tau5 tau6 tau7 tau_abs\n";
+        tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 \n";
         tau.close();
+
+        std::ofstream dq;
+        dq.open("/home/viktor/Documents/BA/log/dq.txt");
+        dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
+        dq.close();
+
+        std::ofstream coriolis_of;
+        coriolis_of.open("/home/viktor/Documents/BA/log/coriolis_of.txt");
+        coriolis_of << "time c0 c1 c2 c3 c4 c5 c6 t0 t1 t2 t3 t4 t5 t6 \n";
+        coriolis_of.close();
+
+        std::ofstream mass;
+        mass.open("/home/viktor/Documents/BA/log/mass.txt")
+        // std::ofstream friction_of;
+        // friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt");
+        // friction_of << "time f0 f1 f2 f3 f4 f5 f6 mode \n";
+        // friction_of.close();
+
+        // std::ofstream threshold;
+        // friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
+        // friction_of << "time t0 t1 t2 t3 t4 t5 t6 \n";
+        // friction_of.close();
 
         // std::ofstream F_error;
         // F_error.open("/Home/Documents/BA/log/joint_0");
@@ -211,9 +241,12 @@ namespace force_control{
         // F_error.close();
 
         // std::ofstream pose_error;
-        // pose_error.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt");
+        // pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
         // pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
         // pose_error.close();
+
+        //Load in friction parameters
+        load_friction_parameters("/home/viktor/catkin_ws/src/force_control/lists/friction_parameters.txt");
     }
 
 
@@ -227,12 +260,13 @@ namespace force_control{
                 model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
 
         // convert to Eigen
-        Eigen::Map<Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
-        Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
-        Eigen::Map<Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
-        Eigen::Map<Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
-        Eigen::Map<Eigen::Matrix<double, 7, 7>> M(mass.data());
-        Eigen::Map<Eigen::Matrix<double, 7, 1>> tau_J_d(  // NOLINT (readability-identifier-naming)
+        coriolis = Eigen::Map<Eigen::Matrix<double, 7, 1>>(coriolis_array.data());
+        jacobian = Eigen::Map<Eigen::Matrix<double, 6, 7>>(jacobian_array.data());
+        q = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.q.data());
+        dq = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.dq.data());
+        dq_d = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.dq_d.data());
+        M = Eigen::Map<Eigen::Matrix<double, 7, 7>>(mass.data());
+        tau_J_d = Eigen::Map<Eigen::Matrix<double, 7, 1>>(  // NOLINT (readability-identifier-naming)
                 robot_state.tau_J_d.data());
         Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
         Eigen::Vector3d position(transform.translation());
@@ -256,6 +290,7 @@ namespace force_control{
         integrator_weights << 75.0, 75.0, 75.0, 120.0, 120.0, 15.0; //give different DoF different integrator constants
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
         I_error += (1-isInSphere) * integrator_weights.cwiseProduct(Sm * dt* error * (1-control_mode));
+
         for (int i = 0; i < 6; i++){
             double a = I_error(i,0);
             I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation
@@ -265,19 +300,23 @@ namespace force_control{
         //F_impedance = -Lambda * T.inverse() * (D * (jacobian * dq) + K * error + integrator_weights.cwiseProduct(I_error));
         F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error); //check for numerical issues, assume Lambda = T
         //ROS_INFO_STREAM("CURRENT position is " << position.transpose());
-        //ROS_INFO_STREAM("Integrator Force is " << I_error.transpose()); //Problem is here
-        //ROS_INFO_STREAM("Impedance Force is " << F_impedance.transpose()); //Problem is here
+        //ROS_INFO_STREAM("Integrator Force is " << I_error.transpose()); 
+        //ROS_INFO_STREAM("Impedance Force is " << F_impedance.transpose()); 
+
         //Force PID
         F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
         I_F_error += dt*(F_contact_des - F_ext); //+ in gazebo (-) on real robot
         F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des; //no need to multiply with Sf since it is done afterwards anyway
         //F_cmd = F_contact_des;
+
         //ROS_INFO_STREAM("-------------------------------------------------------");
+
         // allocate variables
-        Eigen::VectorXd tau_task(7), tau_nullspace(7), tau_d(7), tau_impedance(7);
+        Eigen::VectorXd tau_task(7), tau_nullspace(7);
         // pseudoinverse for nullspace handling
         Eigen::MatrixXd jacobian_transpose_pinv;
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
+
         //construct external repulsion force
         Eigen::Vector3d r = position - C; // compute vector between EE and sphere
         double penetration_depth = std::max(0.0, R-r.norm());
@@ -314,56 +353,68 @@ namespace force_control{
         }
         **/
 
-    
-       Eigen::VectorXd tau_friction = calculate_tau_friction(dq); //Gets friction forces for current state
-
-
-        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;
-
-        // If no movement wanted by impedance_force_control, no friction-dependend force will be applied
-        for (int i = 0; i < 7; i++){
-            if (std::abs(tau_impedance(i)) <= 0.1){
-                tau_friction(i) = 0;
-            }
-        }
-
-        //use for testing:
-
-        if (test){ //Only set torques for the joint you want to test
-            for (int i = 0; i < 7; i++){
-                if (i != joint){
-                    tau_d(i) = tau_nullspace(i) + coriolis(i);
-                }
-            }
-        
-
-            tau_d(joint) = timestamp * 0.2 + tau_nullspace(joint) + coriolis(joint);
-        
-            //If movement > 0, no torques applied anymore
-            if (std::abs(dq(joint)) > .1){
-            tau_d(joint) = tau_nullspace(joint) + coriolis(joint);
-            timestamp = 0;
-            }
+        if(friction){
+            calculate_tau_friction(); //Gets friction forces for current state
         }
         else{
-            tau_d << tau_impedance + tau_nullspace + coriolis/*  + tau_friction*/; //add nullspace, coriolis and friction components to desired torque
+            tau_friction.setZero();
+        }
+
+        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;      
+
+        //use for testing. test and joint are given over from demo.cpp to select whether testing is active and what joint is actuated.
+        //All other joint torques are set to zero. Goal is to follow the wanted velocity dq_usr
+
+        if (test){ //Only set torques for the joint you want to test
+            double dq_usr = 0.25; //desired rotational speed
+            double P = friction_parameters(joint)/.005*.5; //P-value of P-controller
+            double dq_error; //error between dq_usr and dq
+            double alpha_ = .01; //gain for exponential filter
+            // double k_D = .33 * .5541;  
+            // double dq_error_old = 0;
+            // double dq_integral = 0;
+            // double k_I = .5 * .5541;
+
+            for (int i = 0; i < 7; i++){
+                if (i != joint){
+                    tau_d(i) =  0 + tau_nullspace(i) + coriolis(i);
+                }//all components that are not tested are set to zero
+            }
+        
+            if(std::abs(dq(joint)) < 0.005){
+                tau_d(joint) = timestamp * 0.01 /* + tau_nullspace(joint) + coriolis(joint) */;
+                timestamp++;
+                // dq_error_old = dq_usr - dq(joint);
+            }//Torque goes up linearly until static friction is overcome
+            else{
+                timestamp = friction_parameters(joint) * 100;
+                dq_error = dq_usr - dq(joint);
+                // dq_integral += dq_error * dt;
+                // double derivative_part = k_D * (dq_error - dq_error_old) / dt;
+                // double integral_part = 1/k_I * dq_integral;
+                tau_d(joint) = alpha_*P * (dq_error /*+ derivative_part +integral_part*/) + (1 - alpha_)*tau_d(joint);
+                // dq_error_old = dq_error;
+            }//P-controller follows reference-speed
+
+            // tau_d(joint) += tau_nullspace(i) + coriolis(i);
+
+        }
+        else{
+            tau_d << tau_impedance + tau_nullspace + coriolis + tau_friction; //add nullspace, coriolis and friction components to desired torque
         }
 
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
 
         for (size_t i = 0; i < 7; ++i) {
             joint_handles_[i].setCommand(tau_d(i));
-        }
+        }//Send command to robot
 
         update_stiffness_and_references();
 
-        timestamp++;
-
         //logging
         //log_values_to_file(log_rate_() && do_logging);
-        tau_measured = tau_J_d;
-        vel_measured = dq;
         log_values_to_file(do_logging);
+        
     }
 
 

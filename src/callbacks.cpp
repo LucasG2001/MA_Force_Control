@@ -294,4 +294,15 @@ namespace force_control {
         F_potential.z() = resulting_force.z;
 
     }
+
+    void CartesianImpedanceController::test_callback(const goal_state_publisher::testMsgConstPtr &msg){
+        test = msg->test;
+        joint = msg->joint;
+    }
+    
+    void CartesianImpedanceController::friction_callback(const std_msgs::Bool::
+ConstPtr& msg){
+        friction = msg->data;
+    }
+
 } //namespace force_control

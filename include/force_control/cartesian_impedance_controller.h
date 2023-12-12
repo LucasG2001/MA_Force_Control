@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include <ostream>
+#include <iostream>
 #include <controller_interface/multi_interface_controller.h>
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -34,6 +34,8 @@
 #include <actionlib/server/simple_action_server.h>
 #include <geometry_msgs/Vector3.h>
 #include <std_msgs/Int16.h>
+#include <std_msgs/Bool.h>
+#include <../../../devel/include/goal_state_publisher/testMsg.h>
 
 
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
@@ -58,7 +60,8 @@ namespace force_control {
         void update(const ros::Time&, const ros::Duration& period) override;
         void update_stiffness_and_references();
         void log_values_to_file(bool do_logging);
-        Eigen::VectorXd calculate_tau_friction(const Eigen::Matrix<double, 7, 1> dq);
+        void load_friction_parameters(const std::string& filePath);
+        void calculate_tau_friction();
 
     private:
         // Saturation
@@ -89,28 +92,40 @@ namespace force_control {
         Eigen::Matrix<double, 6,6> cartesian_stiffness_target_; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_damping_target_; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_inertia_target_; //impedance damping term
-        Eigen::Matrix<double, 7,1> tau_measured = Eigen::MatrixXd::Zero(7,1); //Measured tau for logging
-        Eigen::Matrix<double, 7,1> vel_measured = Eigen::MatrixXd::Zero(7,1); //Measured velocity for logging
-
+        Eigen::Matrix<double, 6,7> jacobian; //jacobian matrix of robot
+        Eigen::Matrix<double, 7,1> coriolis; //coriolis torques of robot
+        Eigen::Matrix<double, 7, 7> M; //Mass-matrix
+        Eigen::Matrix<double, 7,1> pos_measured = Eigen::MatrixXd::Zero(7,1); //Measured position for logging
+        Eigen::Matrix<double, 7,1> tau_d = Eigen::MatrixXd::Zero(7,1); //commanded torque
+        Eigen::Matrix<double, 7, 1> tau_J_d = Eigen::MatrixXd::Zero(7,1); //measured torque
+        Eigen::Matrix<double, 7, 1> dq = Eigen::MatrixXd::Zero(7,1); //measured rotational speed
+        Eigen::Matrix<double, 7, 1> dq_d = Eigen::MatrixXd::Zero(7,1); //desired rotational speed
+        Eigen::Matrix<double, 7, 1> q = Eigen::MatrixXd::Zero(7,1); //position of joint
+        Eigen::Matrix<double, 7, 1> friction_parameters = Eigen::MatrixXd::Zero(7,1); //friction parameters imported from lists/friction_parameters.txt
+        Eigen::Matrix<double, 7, 1> tau_impedance = Eigen::MatrixXd::Zero(7,1); //torque for every joint from Jacobi * F_cmd
+        Eigen::Matrix<double, 7, 1> tau_friction = Eigen::MatrixXd::Zero(7,1); //torque compensating friction
+        const Eigen::VectorXd error_goal =  (Eigen::VectorXd(6) << .001, .001, .001, .01, .01, .01).finished(); //Sufficient good errors needed for friction compensation
+        Eigen::Matrix<double, 7, 1> tau_threshold = Eigen::MatrixXd::Zero(7,1); //Minimum tau_impedance, after which friction compensation should turn on
 
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
         bool do_logging = true; //set if we do log values
-        bool test = true; //Set if you want to test particular joint
+        bool test = false; //Set if you want to test particular joint
+        bool friction = false; //Sets whether friction compensation is enabled
         int joint = 0; //Number of joint to test
-        int timestamp = 0;
+        int timestamp = 0; //helper for linear increase of test torque
         // end FLAGS
         double filter_params_{0.005};
         double nullspace_stiffness_{0.001};
         double nullspace_stiffness_target_{0.001};
-        const double delta_tau_max_{1.0};
+        const double delta_tau_max_{1.0}; //max. torque-rate to ensure continuity
         Eigen::Matrix<double, 7, 1> q_d_nullspace_;
         Eigen::Vector3d position_d_;
         Eigen::Quaterniond orientation_d_;
         std::mutex position_and_orientation_d_target_mutex_;
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
-        double count = 0; //logging
+        unsigned int count = 0; //logging
         franka_hw::TriggerRate log_rate_{50}; //logging
         double dt = 0.001;
 
@@ -160,7 +175,13 @@ namespace force_control {
         //subscriber for scene potential field
         ros::Subscriber sub_potential_field;
         void potential_field_callback(const geometry_msgs::Vector3 &goal_pose);
-
+        //subscriber for test mode
+        ros::Subscriber sub_test;
+        void test_callback(const goal_state_publisher::testMsg::ConstPtr& msg);
+        //subscriber for friction mode
+        ros::Subscriber sub_friction;
+        void friction_callback(const std_msgs::Bool::ConstPtr& msg);
+        
 
     };
 
