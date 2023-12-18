@@ -163,6 +163,7 @@ namespace force_control {
 
     }
 
+	//currently unused
     void CartesianImpedanceController::complianceParamCallback(
             franka_example_controllers::compliance_paramConfig &config,
             uint32_t /*level*/) {
@@ -295,4 +296,17 @@ namespace force_control {
         F_potential.z() = 0.2* resulting_force.z + 0.8 * F_potential.z();
 
     }
+
+	void CartesianImpedanceController::impedance_param_reconfigure_callback(const custom_msgs::ImpedanceParameterMsgConstPtr &msg){
+		//cartesian impedance general
+		ROS_INFO("Updating Impedance Parameters");
+		cartesian_stiffness_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->stiffness.data());
+		cartesian_damping_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->damping.data());
+		//cartesian_inertia_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->stiffness.data());
+		//at the moment we cannot use variable inertia
+		//safety bubble
+		//ToDo: Implement logic to have desired equilibrium radius
+		repulsion_K_target_ = Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(msg->stiffness.data());
+		repulsion_D_target_ = Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(msg->stiffness.data());
+	}
 } //namespace force_control

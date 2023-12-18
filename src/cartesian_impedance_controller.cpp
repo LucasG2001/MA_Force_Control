@@ -46,19 +46,19 @@ namespace force_control{
 
         // free move scenario pose reference
         sub_equilibrium_pose_ = node_handle.subscribe(
-                "reference_pose", 20, &CartesianImpedanceController::equilibriumPoseCallback, this,
+                "reference_pose", 2, &CartesianImpedanceController::equilibriumPoseCallback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
         //control mode between free float and impedance
         sub_control_mode = node_handle.subscribe(
-                "control_mode", 20, &CartesianImpedanceController::control_mode_callback, this,
+                "control_mode", 1, &CartesianImpedanceController::control_mode_callback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
         //subscriber for Yannic Hofmanns and Lucas Gimenos Hololens-Teleoperation code
         sub_eq_config = node_handle.subscribe(
-                "joint_angles", 20, &CartesianImpedanceController::JointConfigCallback, this,
+                "joint_angles", 2, &CartesianImpedanceController::JointConfigCallback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
         //position of right hand for safety bubble
         sub_hand_pose = node_handle.subscribe(
-                "right_hand", 20, &CartesianImpedanceController::HandPoseCallback, this,
+                "right_hand", 2, &CartesianImpedanceController::HandPoseCallback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
         //movement with constrained motion in one direction, where force can be applied
         sub_force_action = node_handle.subscribe(
@@ -66,8 +66,12 @@ namespace force_control{
                 ros::TransportHints().reliable().tcpNoDelay());
         //subscribes to the complete resulting force from planning scene potential field
         sub_potential_field = node_handle.subscribe(
-                "/resulting_force", 20, &CartesianImpedanceController::potential_field_callback, this,
+                "/resulting_force", 2, &CartesianImpedanceController::potential_field_callback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
+	    //subscribes to the complete resulting force from planning scene potential field
+	    sub_impedance_param = node_handle.subscribe(
+			    "impedance_param_reconfig", 2, &CartesianImpedanceController::impedance_param_reconfigure_callback, this,
+			    ros::TransportHints().reliable().tcpNoDelay());
 
         std::string arm_id;
         if (!node_handle.getParam("arm_id", arm_id)) {
@@ -170,19 +174,17 @@ namespace force_control{
         q_d_nullspace_ = q_initial;
         nullspace_stiffness_target_ = 0.0001;
         K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
-        K.bottomRightCorner(3, 3) << 80, 0, 0, 0, 80, 0, 0, 0, 10;
+        K.bottomRightCorner(3, 3) << 65, 0, 0, 0, 65, 0, 0, 0, 10;
         D.topLeftCorner(3, 3) = 55 * Eigen::Matrix3d::Identity();
         D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
         cartesian_stiffness_target_ = K;
         cartesian_damping_target_ = D;
-        max_I << 15.0, 15.0, 15.0, 8.0, 8.0, 1.0; // integrator saturation
-        // uncomment the following lines if you wish to set a special inertia. Else (default) the inertia
-        // is assumed to be equal to the robot inertia
-        //T.topLeftCorner(3, 3) = 1 * Eigen::Matrix3d::Identity();
-        //T.bottomRightCorner(3, 3) = 0.1 * Eigen::Matrix3d::Identity();
+        //max_I << 15.0, 15.0, 15.0, 8.0, 8.0, 1.0; // integrator saturation
+	    max_I << 2.0, 2.0, 2.0, 1.5, 1.5, 0.9; // integrator saturation
+
 
         //construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
-        R = 0.2; C << 0.0, 0, 0.0;
+        R = 0.01; C << 0.0, 0, 0.0;
         //free float
         //leave this commented out if you don't want to free float the end-effector
         /**
@@ -260,25 +262,24 @@ namespace force_control{
         error.tail(3) << error_quaternion.x(), error_quaternion.y(), error_quaternion.z();
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
-        Eigen::Matrix<double, 6, 1> integrator_weights;
-        integrator_weights << 150.0, 150.0, 150.0, 150.0, 150.0, 4.0; //give different DoF different integrator constants
+
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
         I_error += (1-isInSphere) * Sm * dt* (1-control_mode) * integrator_weights.cwiseProduct(error);
         for (int i = 0; i < 6; i++){
             double a = I_error(i,0);
             I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation
         }
-
         //Force PID
         F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
         I_F_error += dt * Sf* (F_contact_des - F_ext); //+ in gazebo (-) on real robot //need to multiply with Sf here, else it gets accumulated nonstop
         F_cmd = 0.4 * (F_contact_des - F_ext) + 0.9 * I_F_error + 0.9 * F_contact_des; //F_contact_des is filtered from F_contact_target
-        F_cmd = Sf * F_cmd;
-	    // compute impedance control Force
+	    // compute impedance control Force (simplified control law Lambda = Theta)
 	    F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error);
+		//full impedance control law
 		//F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
+
         // allocate variables
-        Eigen::VectorXd tau_task(7), tau_nullspace(7), tau_d(7), tau_impedance(7);
+        Eigen::VectorXd tau_nullspace(7), tau_d(7), tau_impedance(7);
         // pseudoinverse for nullspace handling
         Eigen::MatrixXd jacobian_transpose_pinv;
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
@@ -286,32 +287,22 @@ namespace force_control{
         r = position - C; // compute vector between EE and sphere
         double penetration_depth = std::max(0.0, R-r.norm());
         Eigen::Vector3d w = (jacobian*dq).head(3); //linear EE velocity
-        rho = r.norm();
-        rho_dot = 0.1 * (rho-rho_last)/dt + 0.9 * rho_dot; //if rho_dot > 0 we move the hand away from the end-effector and vice versa //add filtering
-        rho_last = rho;
-        r_dot = 0.001 * (r - r_last)/dt + 0.999 * r_dot; //filtering //we want to regulate r_dot to 0 if moving towards the hand
-        r_last = r;
         //v = v.dot(r)/r.squaredNorm() * r; //projected velocity
         isInSphere = r.norm() < R;
         Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
         double r_eq = 0.75 * R;
+
         /** update repulsive stiffnesses and damping **/
-        //repulsion_K = (K.topLeftCorner(3,3) * r_eq/(R-r_eq))*Eigen::MatrixXd::Identity(3,3);
+        //ToDo: Implement updates of repulsionK with callback and set repulsion to 0 if free floating
         //do not repulse in free float
-        repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
-        //if rho_dot < 0 we go towards the hand and damp, if rho_dot > 0 we go away from the hand and do nothing
-        if (rho_dot < 0.0){ repulsion_D = D.topLeftCorner(3,3); }
-        else{ repulsion_D.setZero(); }
+		//ToDo: find good solution with repulösion K regarding equilibrium radius and callback logic
+        //repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
+
         if(isInSphere){
             I_error *= 0; //clear Integrator
-            //choose damping as D(v_des - v_rel) with v_des = 0 and v_rel = r_dot
-            //use case: Do not move when at target position : F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/r.norm())
-            // and repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq); (scaled by error)
             F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/r.norm()) + 0.9 * F_repulsion.head(3); //assume Theta = Lambda
         }
         else{ F_repulsion = 0.3 * 0.0 * F_repulsion + 0.7 * F_repulsion; } //command smooth slowdown
-
-
 
         // nullspace PD control with damping ratio = 1
         tau_nullspace << (Eigen::MatrixXd::Identity(7, 7) -
@@ -319,13 +310,6 @@ namespace force_control{
                          (nullspace_stiffness_ * config_control * (q_d_nullspace_ - q) - //if config_control = true we control the whole robot configuration
                           (2.0 * sqrt(nullspace_stiffness_)) * dq);  // if config control ) false we don't care about the joint positions
 
-        //virtual walls
-        /**
-        double wall_pos = 0.9;
-        if (std::abs(position.y()) >= wall_pos){
-            F_impedance.y() = -(500 * (position.y()-wall_pos)) + 45 *(jacobian*dq)(1,0) * 0.001 + 0.999 * F_impedance(1,0);
-        }
-        **/
 
         tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;
         tau_d << tau_impedance + tau_nullspace + coriolis; //add nullspace and coriolis components to desired torque

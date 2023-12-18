@@ -26,6 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
         franka_example_controllers
         actionlib_msgs
         actionlib
+        custom_msgs
 )
 
 find_package(Eigen3 REQUIRED)
@@ -80,6 +81,7 @@ catkin_package(
     visualization_msgs
         actionlib
         actionlib_msgs
+        custom_msgs
 
   DEPENDS Franka
 )
@@ -89,7 +91,7 @@ add_library(force_control
         src/ForceActionController_helpers.cpp
         src/cartesian_impedance_controller.cpp
         src/callbacks.cpp
-        src/CartesianImpedanceController_helpers.cpp
+        src/cartesian_impedance_controller_helpers.cpp
         src/equilibrium_pose_server.cpp
         ../../devel/include/force_control/EquilibriumPoseAction.h)
 

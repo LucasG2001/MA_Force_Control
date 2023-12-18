@@ -2502,6 +2502,18 @@
 			"value" : "/opt/ros/noetic/share/cpp_common/cmake"
 		},
 		{
+			"name" : "custom_msgs_DIR",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "The directory containing a CMake configuration file for custom_msgs."
+				}
+			],
+			"type" : "PATH",
+			"value" : "/home/lucas/catkin_ws/devel/share/custom_msgs/cmake"
+		},
+		{
 			"name" : "dynamic_reconfigure_DIR",
 			"properties" : 
 			[

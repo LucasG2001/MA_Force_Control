@@ -1100,6 +1100,18 @@
 			"path" : "/opt/ros/noetic/share/actionlib/cmake/actionlibConfig.cmake"
 		},
 		{
+			"isExternal" : true,
+			"path" : "/home/lucas/catkin_ws/devel/share/custom_msgs/cmake/custom_msgsConfig-version.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/home/lucas/catkin_ws/devel/share/custom_msgs/cmake/custom_msgsConfig.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/home/lucas/catkin_ws/devel/share/custom_msgs/cmake/custom_msgs-msg-extras.cmake"
+		},
+		{
 			"isGenerated" : true,
 			"path" : "cmake-build-debug/catkin_generated/ordered_paths.cmake"
 		},

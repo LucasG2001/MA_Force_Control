@@ -6,8 +6,6 @@
 #define FORCE_CONTROL_CARTESIAN_IMPEDANCE_CONTROLLER_H
 
 #endif
-// Copyright (c) 2017 Franka Emika GmbH
-// Use of this source code is governed by the Apache-2.0 license, see LICENSE
 #pragma once
 
 #include <memory>
@@ -34,7 +32,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <geometry_msgs/Vector3.h>
 #include <std_msgs/Int16.h>
-
+#include <custom_msgs/ImpedanceParameterMsg.h>
 
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
 
@@ -50,7 +48,9 @@ namespace force_control {
                 moveit_action_server_node("cartesian_impedance_controller"),
                 moveit_action_server(moveit_action_server_node, "follow_joint_trajectory", boost::bind(&CartesianImpedanceController::action_callback, this, _1, &moveit_action_server), false)
         {
+	        integrator_weights << 150.0, 150.0, 150.0, 150.0, 150.0, 4.0; //give different DoF different integrator constants
             moveit_action_server.start();
+
         }
 
         bool init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& node_handle) override;
@@ -69,6 +69,7 @@ namespace force_control {
         std::unique_ptr<franka_hw::FrankaModelHandle> model_handle_;
         std::vector<hardware_interface::JointHandle> joint_handles_;
 
+		//Physical quantities
         Eigen::Matrix<double, 6,6> Lambda = IDENTITY; // operational space mass matrix
         Eigen::Matrix<double, 6, 6> Sm = IDENTITY; //task space selection matrix for positions and rotation
         Eigen::Matrix<double, 6, 6> Sf = Eigen::MatrixXd::Zero(6,6); //task space selection matrix for forces
@@ -78,18 +79,24 @@ namespace force_control {
         Eigen::Matrix<double, 6, 1> error; //pose error (6d)
         Eigen::Matrix<double, 6, 1> I_error = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
         Eigen::Matrix<double, 6, 1> max_I = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
+	    Eigen::Matrix<double, 6, 1> integrator_weights;
         Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,1); //desired contact force
 	    Eigen::Matrix<double, 6, 1>  F_contact_target = Eigen::MatrixXd::Zero(6,1); //desired contact force used for filtering
         Eigen::Matrix<double, 6, 1>  F_ext = Eigen::MatrixXd::Zero(6,1); //external forces
         Eigen::Matrix<double, 6, 1>  F_cmd = Eigen::MatrixXd::Zero(6,1); //commanded contact force
         Eigen::Matrix<double, 6, 1>  I_F_error = Eigen::MatrixXd::Zero(6,1); //force error integral
+
+		//all IMPEDANCE PARAMETERS
+		//Robot
         Eigen::Matrix<double, 6,6> T = IDENTITY; // impedance inertia term
         Eigen::Matrix<double, 6,6> K = IDENTITY; //impedance stiffness term
         Eigen::Matrix<double, 6,6> D = IDENTITY; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_stiffness_target_; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_damping_target_; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_inertia_target_; //impedance damping term
-
+		// Safety bubble
+		Eigen::Matrix<double, 3, 3> repulsion_K, repulsion_D;
+	    Eigen::Matrix<double, 3,3> repulsion_K_target_, repulsion_D_target_; //impedance damping term
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
         bool do_logging = true; //set if we do log values
@@ -112,13 +119,7 @@ namespace force_control {
         bool isInSphere = false;
         double R; //safety bubble radius
         Eigen::Vector3d r; //distance EE to safety bubble position - C
-        Eigen::Vector3d r_dot; //velocity EE to safety bubble position - C
         Eigen::Vector3d C;
-        Eigen::Vector3d r_last;
-        double rho; // absolute value of r
-        double rho_last;
-        double rho_dot;
-        Eigen::Matrix<double, 3, 3> repulsion_K, repulsion_D;
         //all included Forces
         Eigen::Matrix<double, 6, 1> F_repulsion, F_potential, F_impedance;
 
@@ -126,6 +127,7 @@ namespace force_control {
         std::unique_ptr<dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>
                 dynamic_server_compliance_param_;
         ros::NodeHandle dynamic_reconfigure_compliance_param_node_;
+
         void complianceParamCallback(franka_example_controllers::compliance_paramConfig& config,
                                      uint32_t level);
 
@@ -159,6 +161,9 @@ namespace force_control {
         ros::Subscriber sub_potential_field;
         void potential_field_callback(const geometry_msgs::Vector3 &goal_pose);
 
+		//subscriber for impedance parameter updating
+	    ros::Subscriber sub_impedance_param;
+	    void impedance_param_reconfigure_callback(const custom_msgs::ImpedanceParameterMsgConstPtr &msg);
 
     };
 
