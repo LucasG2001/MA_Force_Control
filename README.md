@@ -19,3 +19,7 @@ Issues:
 Note:
 -To adapt force thresholds you need to change the configs in the franka control and franka_hw packages
 
+___________________________________________________________________________
+Update Dec 2023
+ Impedances can now be set by custom_msgs/ImpedanceParamMsg (see pacakge "custom_msgs") by callback. 
+Inertia is not implemented yet. 
