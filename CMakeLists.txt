@@ -92,8 +92,7 @@ add_library(force_control
         src/cartesian_impedance_controller.cpp
         src/callbacks.cpp
         src/cartesian_impedance_controller_helpers.cpp
-        src/equilibrium_pose_server.cpp
-        ../../devel/include/force_control/EquilibriumPoseAction.h)
+        )
 
 
 add_dependencies(force_control

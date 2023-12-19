@@ -25,8 +25,8 @@ namespace force_control {
                 position_and_orientation_d_target_mutex_);
 		//desired position and force
 		//ToDo:: check what happens if we do no interpolation on reference pose
-        position_d_ = filter_params_ * position_d_target_ + (1.0 - filter_params_) * position_d_;
-        orientation_d_ = orientation_d_.slerp(filter_params_, orientation_d_target_);
+        position_d_ = 2*filter_params_ * position_d_target_ + (1.0 - 2*filter_params_) * position_d_;
+        orientation_d_ = orientation_d_.slerp(2*filter_params_, orientation_d_target_);
 		F_contact_des = 0.05 * F_contact_target + 0.95 * F_contact_des;
 
     }

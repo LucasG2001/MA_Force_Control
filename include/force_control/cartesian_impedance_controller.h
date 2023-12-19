@@ -49,6 +49,7 @@ namespace force_control {
                 moveit_action_server(moveit_action_server_node, "follow_joint_trajectory", boost::bind(&CartesianImpedanceController::action_callback, this, _1, &moveit_action_server), false)
         {
 	        integrator_weights << 150.0, 150.0, 150.0, 150.0, 150.0, 4.0; //give different DoF different integrator constants
+		        max_I << 10.0, 10.0, 10.0, 8, 8, 2; // integrator saturation
             moveit_action_server.start();
 
         }
@@ -78,7 +79,7 @@ namespace force_control {
         Eigen::Affine3d pose_desired;
         Eigen::Matrix<double, 6, 1> error; //pose error (6d)
         Eigen::Matrix<double, 6, 1> I_error = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
-        Eigen::Matrix<double, 6, 1> max_I = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
+        Eigen::Matrix<double, 6, 1> max_I; //maximum Integrator windup
 	    Eigen::Matrix<double, 6, 1> integrator_weights;
         Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,1); //desired contact force
 	    Eigen::Matrix<double, 6, 1>  F_contact_target = Eigen::MatrixXd::Zero(6,1); //desired contact force used for filtering
@@ -102,8 +103,8 @@ namespace force_control {
         bool do_logging = true; //set if we do log values
         // end FLAGS
         double filter_params_{0.005};
-        double nullspace_stiffness_{0.001};
-        double nullspace_stiffness_target_{0.001};
+        double nullspace_stiffness_{0};
+        double nullspace_stiffness_target_{0};
         const double delta_tau_max_{1.0};
         Eigen::Matrix<double, 7, 1> q_d_nullspace_;
         Eigen::Vector3d position_d_;

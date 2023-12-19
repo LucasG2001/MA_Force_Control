@@ -175,12 +175,12 @@ namespace force_control{
         nullspace_stiffness_target_ = 0.0001;
         K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
         K.bottomRightCorner(3, 3) << 65, 0, 0, 0, 65, 0, 0, 0, 10;
-        D.topLeftCorner(3, 3) = 55 * Eigen::Matrix3d::Identity();
+        D.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
         D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
         cartesian_stiffness_target_ = K;
         cartesian_damping_target_ = D;
         //max_I << 15.0, 15.0, 15.0, 8.0, 8.0, 1.0; // integrator saturation
-	    max_I << 2.0, 2.0, 2.0, 1.5, 1.5, 0.9; // integrator saturation
+
 
 
         //construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
@@ -271,9 +271,10 @@ namespace force_control{
         }
         //Force PID
         F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
-        I_F_error += dt * Sf* (F_contact_des - F_ext); //+ in gazebo (-) on real robot //need to multiply with Sf here, else it gets accumulated nonstop
+        I_F_error += dt * (F_contact_des - F_ext); //+ in gazebo (-) on real robot //need to multiply with Sf here, else it gets accumulated nonstop
         F_cmd = 0.4 * (F_contact_des - F_ext) + 0.9 * I_F_error + 0.9 * F_contact_des; //F_contact_des is filtered from F_contact_target
 	    // compute impedance control Force (simplified control law Lambda = Theta)
+		//ToDo: Why is I_error negative (same as error in F_impedance)?
 	    F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error);
 		//full impedance control law
 		//F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
@@ -295,7 +296,7 @@ namespace force_control{
         /** update repulsive stiffnesses and damping **/
         //ToDo: Implement updates of repulsionK with callback and set repulsion to 0 if free floating
         //do not repulse in free float
-		//ToDo: find good solution with repulösion K regarding equilibrium radius and callback logic
+		//ToDo: find good solution with repulsion K regarding equilibrium radius and callback logic
         //repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
 
         if(isInSphere){
@@ -303,6 +304,9 @@ namespace force_control{
             F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/r.norm()) + 0.9 * F_repulsion.head(3); //assume Theta = Lambda
         }
         else{ F_repulsion = 0.3 * 0.0 * F_repulsion + 0.7 * F_repulsion; } //command smooth slowdown
+		//testing purposes
+		F_repulsion *= 0;
+		F_potential *= 0;
 
         // nullspace PD control with damping ratio = 1
         tau_nullspace << (Eigen::MatrixXd::Identity(7, 7) -
@@ -322,7 +326,6 @@ namespace force_control{
 
         //logging
         log_values_to_file(log_rate_() && do_logging);
-        //log_values_to_file(log_rate_());
     }
 
 
