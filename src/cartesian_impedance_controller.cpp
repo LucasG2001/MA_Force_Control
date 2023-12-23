@@ -180,7 +180,7 @@ namespace force_control{
         nullspace_stiffness_target_ = 0.0001;
         K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
         K.bottomRightCorner(3, 3) << 130, 0, 0, 0, 130, 0, 0, 0, 10;
-        D.topLeftCorner(3, 3) = 60 * Eigen::Matrix3d::Identity();
+        D.topLeftCorner(3, 3) = 35 * Eigen::Matrix3d::Identity();
         D.bottomRightCorner(3, 3) << 20, 0, 0, 0, 20, 0, 0, 0, 6;
         cartesian_stiffness_target_ = K;
         cartesian_damping_target_ = D;
@@ -203,32 +203,30 @@ namespace force_control{
 
         //loggers
 
-        // std::ofstream F;
-        // F.open("/Home/Documents/BA/log/joint_0");
-        // F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
-        // F.close();
+        std::ofstream F;
+        F.open("/home/viktor/Documents/BA/log/F.txt");
+        F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
+        F.close();
 
         std::ofstream tau;
         tau.open("/home/viktor/Documents/BA/log/tau.txt");
-        tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 \n";
+        tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 q0 q1 q2 q3 q4 q5 q6 g0 g1 g2 g3 g4 g5 g6 \n";
         tau.close();
 
-        std::ofstream dq;
-        dq.open("/home/viktor/Documents/BA/log/dq.txt");
-        dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
-        dq.close();
+        // std::ofstream dq;
+        // dq.open("/home/viktor/Documents/BA/log/dq.txt");
+        // dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
+        // dq.close();
 
-        std::ofstream coriolis_of;
-        coriolis_of.open("/home/viktor/Documents/BA/log/coriolis_of.txt");
-        coriolis_of << "time c0 c1 c2 c3 c4 c5 c6 t0 t1 t2 t3 t4 t5 t6 \n";
-        coriolis_of.close();
+        // std::ofstream coriolis_of;
+        // coriolis_of.open("/home/viktor/Documents/BA/log/coriolis_of.txt");
+        // coriolis_of << "time c0 c1 c2 c3 c4 c5 c6 t0 t1 t2 t3 t4 t5 t6 \n";
+        // coriolis_of.close();
 
-        std::ofstream mass;
-        mass.open("/home/viktor/Documents/BA/log/mass.txt")
-        // std::ofstream friction_of;
-        // friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt");
-        // friction_of << "time f0 f1 f2 f3 f4 f5 f6 mode \n";
-        // friction_of.close();
+        std::ofstream friction_of;
+        friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt");
+        friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 \n";
+        friction_of.close();
 
         // std::ofstream threshold;
         // friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
@@ -240,10 +238,10 @@ namespace force_control{
         // F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
         // F_error.close();
 
-        // std::ofstream pose_error;
-        // pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
-        // pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
-        // pose_error.close();
+        std::ofstream pose_error;
+        pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
+        pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
+        pose_error.close();
 
         //Load in friction parameters
         load_friction_parameters("/home/viktor/catkin_ws/src/force_control/lists/friction_parameters.txt");
@@ -255,6 +253,7 @@ namespace force_control{
         // get state variables
         franka::RobotState robot_state = state_handle_->getRobotState();
         std::array<double, 49> mass = model_handle_->getMass();
+        std::array<double, 7> gravity_array = model_handle_->getGravity();
         std::array<double, 7> coriolis_array = model_handle_->getCoriolis();
         std::array<double, 42> jacobian_array =
                 model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
@@ -262,6 +261,7 @@ namespace force_control{
         // convert to Eigen
         coriolis = Eigen::Map<Eigen::Matrix<double, 7, 1>>(coriolis_array.data());
         jacobian = Eigen::Map<Eigen::Matrix<double, 6, 7>>(jacobian_array.data());
+        gravity = Eigen::Map<Eigen::Matrix<double, 7, 1>>(gravity_array.data());
         q = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.q.data());
         dq = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.dq.data());
         dq_d = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.dq_d.data());
@@ -287,7 +287,7 @@ namespace force_control{
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
         Eigen::Matrix<double, 6, 1> integrator_weights;
-        integrator_weights << 75.0, 75.0, 75.0, 120.0, 120.0, 15.0; //give different DoF different integrator constants
+        integrator_weights << 150.0, 150.0, 150.0, 120.0, 120.0, 10.0; //give different DoF different integrator constants
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
         I_error += (1-isInSphere) * integrator_weights.cwiseProduct(Sm * dt* error * (1-control_mode));
 
@@ -298,15 +298,17 @@ namespace force_control{
 
         // compute impedance control Force
         //F_impedance = -Lambda * T.inverse() * (D * (jacobian * dq) + K * error + integrator_weights.cwiseProduct(I_error));
-        F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error); //check for numerical issues, assume Lambda = T
+        F_impedance = -1 * (D * (jacobian * dq) + K * error /*+ I_error*/); //check for numerical issues, assume Lambda = T
         //ROS_INFO_STREAM("CURRENT position is " << position.transpose());
         //ROS_INFO_STREAM("Integrator Force is " << I_error.transpose()); 
         //ROS_INFO_STREAM("Impedance Force is " << F_impedance.transpose()); 
 
         //Force PID
+        /*
         F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
         I_F_error += dt*(F_contact_des - F_ext); //+ in gazebo (-) on real robot
         F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des; //no need to multiply with Sf since it is done afterwards anyway
+        */
         //F_cmd = F_contact_des;
 
         //ROS_INFO_STREAM("-------------------------------------------------------");
@@ -318,6 +320,7 @@ namespace force_control{
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
 
         //construct external repulsion force
+        /*
         Eigen::Vector3d r = position - C; // compute vector between EE and sphere
         double penetration_depth = std::max(0.0, R-r.norm());
         Eigen::Vector3d v = (jacobian*dq).head(3);
@@ -325,11 +328,12 @@ namespace force_control{
         isInSphere = r.norm() < R;
         Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
         double r_eq = 0.75 * R;
+        */
         //update repulsive stiffnesses
-        repulsion_K = (K.topLeftCorner(3,3) * r_eq/(R-r_eq))*Eigen::MatrixXd::Identity(3,3); //30 for free floating operation, else use K
-        repulsion_D = 3.0 * (repulsion_K).array().sqrt();
+        //repulsion_K = (K.topLeftCorner(3,3) * r_eq/(R-r_eq))*Eigen::MatrixXd::Identity(3,3); //30 for free floating operation, else use K
+        //repulsion_D = 3.0 * (repulsion_K).array().sqrt();
         // TODO smooth K changes
-
+        /*
         if(isInSphere){
             F_repulsion.head(3) = 0.99* (repulsion_K * penetration_depth * r/r.norm() - repulsion_D * v) + 0.01 * F_repulsion.head(3); //assume Theta = Lambda
         }
@@ -337,6 +341,7 @@ namespace force_control{
             double decay = -log(0.0001)/R; //at 2R the damping is divided by 10'000
             F_repulsion.head(3) = - exp(decay * (R-r.norm())) * 0.1 * repulsion_D * v + 0.9 * F_repulsion.head(3); // 0.005 * F_repulsion_new + 0.995 * F_repulsion_old
         }
+        */
 
 
         // nullspace PD control with damping ratio = 1
@@ -358,18 +363,22 @@ namespace force_control{
         }
         else{
             tau_friction.setZero();
+            friction_state.setZero();
         }
 
         tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;      
 
         //use for testing. test and joint are given over from demo.cpp to select whether testing is active and what joint is actuated.
         //All other joint torques are set to zero. Goal is to follow the wanted velocity dq_usr
+        if(control_mode == 1){
+            timestamp = 0;
+        }
 
         if (test){ //Only set torques for the joint you want to test
-            double dq_usr = 0.25; //desired rotational speed
-            double P = friction_parameters(joint)/.005*.5; //P-value of P-controller
+            double dq_usr = (-1)*0.25; //desired rotational speed
+            double P = static_friction(joint)/.005*.25; //P-value of P-controller
             double dq_error; //error between dq_usr and dq
-            double alpha_ = .01; //gain for exponential filter
+            double alpha_ = .001; //gain for exponential filter
             // double k_D = .33 * .5541;  
             // double dq_error_old = 0;
             // double dq_integral = 0;
@@ -382,17 +391,18 @@ namespace force_control{
             }
         
             if(std::abs(dq(joint)) < 0.005){
-                tau_d(joint) = timestamp * 0.01 /* + tau_nullspace(joint) + coriolis(joint) */;
+                tau_d(joint) = (-1)*timestamp * 0.0001 /* + tau_nullspace(joint) + coriolis(joint) */;
                 timestamp++;
                 // dq_error_old = dq_usr - dq(joint);
             }//Torque goes up linearly until static friction is overcome
             else{
-                timestamp = friction_parameters(joint) * 100;
-                dq_error = dq_usr - dq(joint);
-                // dq_integral += dq_error * dt;
-                // double derivative_part = k_D * (dq_error - dq_error_old) / dt;
-                // double integral_part = 1/k_I * dq_integral;
-                tau_d(joint) = alpha_*P * (dq_error /*+ derivative_part +integral_part*/) + (1 - alpha_)*tau_d(joint);
+                timestamp = 0;
+                // timestamp = static_friction(joint) * 100;
+                // dq_error = dq_usr - dq(joint);
+                // // dq_integral += dq_error * dt;
+                // // double derivative_part = k_D * (dq_error - dq_error_old) / dt;
+                // // double integral_part = 1/k_I * dq_integral;
+                // tau_d(joint) = alpha_*P * (dq_error /*+ derivative_part +integral_part*/) + (1 - alpha_)*tau_d(joint);
                 // dq_error_old = dq_error;
             }//P-controller follows reference-speed
 
@@ -412,8 +422,8 @@ namespace force_control{
         update_stiffness_and_references();
 
         //logging
-        //log_values_to_file(log_rate_() && do_logging);
-        log_values_to_file(do_logging);
+        log_values_to_file(log_rate_() && do_logging);
+        //log_values_to_file(do_logging);
         
     }
 

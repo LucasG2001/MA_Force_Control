@@ -62,6 +62,8 @@ namespace force_control {
         void log_values_to_file(bool do_logging);
         void load_friction_parameters(const std::string& filePath);
         void calculate_tau_friction();
+        void linear_friction(const int &i);
+        void quadratic_friction(const int &i);
 
     private:
         // Saturation
@@ -99,13 +101,23 @@ namespace force_control {
         Eigen::Matrix<double, 7,1> tau_d = Eigen::MatrixXd::Zero(7,1); //commanded torque
         Eigen::Matrix<double, 7, 1> tau_J_d = Eigen::MatrixXd::Zero(7,1); //measured torque
         Eigen::Matrix<double, 7, 1> dq = Eigen::MatrixXd::Zero(7,1); //measured rotational speed
+        Eigen::Matrix<double, 7, 1> dq_filtered = Eigen::MatrixXd::Zero(7,1); //rotational speed filtered for friction compensation
         Eigen::Matrix<double, 7, 1> dq_d = Eigen::MatrixXd::Zero(7,1); //desired rotational speed
-        Eigen::Matrix<double, 7, 1> q = Eigen::MatrixXd::Zero(7,1); //position of joint
-        Eigen::Matrix<double, 7, 1> friction_parameters = Eigen::MatrixXd::Zero(7,1); //friction parameters imported from lists/friction_parameters.txt
+        Eigen::Matrix<double, 7, 1> q = Eigen::MatrixXd::Zero(7,1); //position of joint measured
+        Eigen::Matrix<double, 7, 1> gravity = Eigen::MatrixXd::Zero(7,1); //gravity vector
         Eigen::Matrix<double, 7, 1> tau_impedance = Eigen::MatrixXd::Zero(7,1); //torque for every joint from Jacobi * F_cmd
+        Eigen::Matrix<double, 7, 1> tau_impedance_filtered = Eigen::MatrixXd::Zero(7,1); //filtered impedance torque for friction compensation
         Eigen::Matrix<double, 7, 1> tau_friction = Eigen::MatrixXd::Zero(7,1); //torque compensating friction
         const Eigen::VectorXd error_goal =  (Eigen::VectorXd(6) << .001, .001, .001, .01, .01, .01).finished(); //Sufficient good errors needed for friction compensation
         Eigen::Matrix<double, 7, 1> tau_threshold = Eigen::MatrixXd::Zero(7,1); //Minimum tau_impedance, after which friction compensation should turn on
+        Eigen::Matrix<double, 7, 1> static_friction = Eigen::MatrixXd::Zero(7,1); //friction parameters imported from lists/friction_parameters.txt
+        Eigen::Matrix<double, 7, 1> lin_a;//component a of linear friction model (a + b*dq)
+        Eigen::Matrix<double, 7, 1> lin_b;//component b of linear friction model (a + b*dq)
+        Eigen::Matrix<double, 7, 1> qua_a;//component a of quadratic friction model (a + b*dq + c*dq²)
+        Eigen::Matrix<double, 7, 1> qua_b;//component b of quadratic friction model (a + b*dq + c*dq²)
+        Eigen::Matrix<double, 7, 1> qua_c;//component c of quadratic friction model (a + b*dq + c*dq²)
+        Eigen::MatrixXi friction_state = Eigen::MatrixXi::Zero(7,1); //current friction state (0 == off, 1 == static, 2 == quadratic, 3 == linear)
+
 
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
@@ -127,7 +139,7 @@ namespace force_control {
         Eigen::Quaterniond orientation_d_target_;
         unsigned int count = 0; //logging
         franka_hw::TriggerRate log_rate_{50}; //logging
-        double dt = 0.001;
+        const double dt = 0.001;
 
         //repulsion sphere around right hand;
         bool isInSphere = false;

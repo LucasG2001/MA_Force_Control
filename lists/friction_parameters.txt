@@ -1,8 +1,49 @@
-1.2325
-0.78
-1.19
-1.255
-1.5
-0.86
+#Every line has the friction parameters for every joint (0-7) described in the comment above it
+#static friction component
+1.2325 
+0.78 
+1.19 
+1.255 
+1.5 
+0.86 
 0.668
-
+#component a of linear friction model (a + b*dq)
+0.98
+0.78 
+1.12 
+1.01 
+0.98 
+0.91 
+0.43 
+#component b of linear friction model (a + b*dq)
+1.18 
+0 
+0.55
+0.87 
+0.935 
+0.54 
+0.45
+#component a of quadratic friction model (a + b*dq + c*dq²)
+0 
+0 
+0 
+0 
+1.5 
+0 
+0.668
+#component b of quadratic friction model (a + b*dq + c*dq²)
+0 
+0 
+0 
+0 
+-4.035 
+0 
+-3.22
+#component c of quadratic friction model (a + b*dq + c*dq²)
+0 
+0 
+0 
+0 
+12.425 
+0 
+12.24
