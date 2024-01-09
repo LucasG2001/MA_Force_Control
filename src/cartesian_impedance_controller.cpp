@@ -170,30 +170,15 @@ namespace force_control{
         orientation_d_target_ = Eigen::Quaterniond(initial_transform.rotation());
 
         // set nullspace equilibrium configuration to initial q
-        //TODO: set controller paramter callback for dynamic reconfiguration
         q_d_nullspace_ = q_initial;
-        nullspace_stiffness_target_ = 0.0001;
-        K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
-        K.bottomRightCorner(3, 3) << 65, 0, 0, 0, 65, 0, 0, 0, 10;
-        D.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
-        D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
-        cartesian_stiffness_target_ = K;
-        cartesian_damping_target_ = D;
-        //max_I << 15.0, 15.0, 15.0, 8.0, 8.0, 1.0; // integrator saturation
-
-
-
-        //construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
-        R = 0.01; C << 0.0, 0, 0.0;
         //free float
         //leave this commented out if you don't want to free float the end-effector
         /**
         K.setZero(); D.setZero(); repulsion_K.setZero(); repulsion_D.setZero(); nullspace_stiffness_target_ = 0;
         cartesian_stiffness_target_.setZero(); cartesian_damping_target_.setZero();
         **/
-
-
         //loggers
+		//ToDo: change this to another node
         std::ofstream F;
         F.open("/home/lucas/Desktop/MA/Force_Data/F_corrections.txt");
         F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
@@ -291,22 +276,18 @@ namespace force_control{
         //v = v.dot(r)/r.squaredNorm() * r; //projected velocity
         isInSphere = r.norm() < R;
         Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
-        double r_eq = 0.75 * R;
+        double r_eq = 0.6 * R;
 
         /** update repulsive stiffnesses and damping **/
-        //ToDo: Implement updates of repulsionK with callback and set repulsion to 0 if free floating
         //do not repulse in free float
 		//ToDo: find good solution with repulsion K regarding equilibrium radius and callback logic
-        //repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
+        repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
 
         if(isInSphere){
             I_error *= 0; //clear Integrator
             F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/r.norm()) + 0.9 * F_repulsion.head(3); //assume Theta = Lambda
         }
         else{ F_repulsion = 0.3 * 0.0 * F_repulsion + 0.7 * F_repulsion; } //command smooth slowdown
-		//testing purposes
-		F_repulsion *= 0;
-		F_potential *= 0;
 
         // nullspace PD control with damping ratio = 1
         tau_nullspace << (Eigen::MatrixXd::Identity(7, 7) -

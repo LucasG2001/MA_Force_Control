@@ -156,7 +156,7 @@ namespace force_control {
         else if (control_mode == 0){
             nullspace_stiffness_target_ = 0.0001;
             cartesian_stiffness_target_.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
-            cartesian_stiffness_target_.bottomRightCorner(3, 3) << 80, 0, 0, 0, 80, 0, 0, 0, 10;
+            cartesian_stiffness_target_.bottomRightCorner(3, 3) << 60, 0, 0, 0, 60, 0, 0, 0, 10;
             cartesian_damping_target_.topLeftCorner(3, 3) = 55 * Eigen::Matrix3d::Identity();
             cartesian_damping_target_.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
         }
@@ -194,18 +194,10 @@ namespace force_control {
 		do_logging = true;
         ROS_INFO("received hand position");
         R = 0.3;
-        //exponential MA filter
 
         C.x() = 0.05 * right_hand_pos.x + 0.95 * C.x(); //smoothing
         C.y() = 0.05 * right_hand_pos.y + 0.95 * C.y();
         C.z() = 0.05 * right_hand_pos.z + 0.95 * C.z();
-
-		/**
-	    C.x() = right_hand_pos.x; //smoothing
-	    C.y() = right_hand_pos.y;
-	    C.z() = right_hand_pos.z;
-	    **/
-
 
 
     }
