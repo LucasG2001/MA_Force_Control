@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/sktistakis/ros_ws/src/MA_Force_Control/build/devel/setup.sh
