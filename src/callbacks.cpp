@@ -126,7 +126,7 @@ namespace force_control {
 
     void CartesianImpedanceController::equilibriumPoseCallback(
             const geometry_msgs::PoseStampedConstPtr &msg) {
-        I_error = Eigen::MatrixXd::Zero(6,1); //clear integrator
+            I_error = Eigen::MatrixXd::Zero(6,1); //clear integrator
             Sm = IDENTITY;
             Sf = ZERO;
             config_control = false;
@@ -298,7 +298,11 @@ namespace force_control {
 		//at the moment we cannot use variable inertia
 		//safety bubble
 		//ToDo: Implement logic to have desired equilibrium radius
-		repulsion_K_target_ = Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(msg->stiffness.data());
-		repulsion_D_target_ = Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(msg->stiffness.data());
+		Eigen::Matrix<double, 6, 6> bubble_stiffness = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->safety_bubble_stiffness.data());
+		Eigen::Matrix<double, 6, 6> bubble_damping = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->safety_bubble_damping.data());
+		repulsion_K_target_ = bubble_stiffness.topLeftCorner(3,3);
+		repulsion_D_target_ = bubble_damping.topLeftCorner(3,3);
+		std::cout << "new bubble stiffness is " << repulsion_K_target_;
+		std::cout << "new bubble damping is " << repulsion_D_target_;
 	}
 } //namespace force_control

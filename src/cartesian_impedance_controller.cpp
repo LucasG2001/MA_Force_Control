@@ -271,6 +271,7 @@ namespace force_control{
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
         //construct external repulsion force
         r = position - C; // compute vector between EE and sphere
+		//ToDo: Exception Handling for when r is very small or 0
         double penetration_depth = std::max(0.0, R-r.norm());
         Eigen::Vector3d w = (jacobian*dq).head(3); //linear EE velocity
         //v = v.dot(r)/r.squaredNorm() * r; //projected velocity
@@ -281,11 +282,11 @@ namespace force_control{
         /** update repulsive stiffnesses and damping **/
         //do not repulse in free float
 		//ToDo: find good solution with repulsion K regarding equilibrium radius and callback logic
-        repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
+        // repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
 
         if(isInSphere){
             I_error *= 0; //clear Integrator
-            F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/r.norm()) + 0.9 * F_repulsion.head(3); //assume Theta = Lambda
+            F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/(r.norm()+0.01)) + 0.9 * F_repulsion.head(3); //assume Theta = Lambda
         }
         else{ F_repulsion = 0.3 * 0.0 * F_repulsion + 0.7 * F_repulsion; } //command smooth slowdown
 

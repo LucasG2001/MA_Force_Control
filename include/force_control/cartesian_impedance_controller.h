@@ -54,6 +54,7 @@ namespace force_control {
 	        K.bottomRightCorner(3, 3) << 50, 0, 0, 0, 65, 0, 0, 0, 10;
 	        D.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
 	        D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
+	        repulsion_K = K.topLeftCorner(3,3) * 0.5;
 	        cartesian_stiffness_target_ = K;
 	        cartesian_damping_target_ = D;
 	        //construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
