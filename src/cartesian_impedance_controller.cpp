@@ -286,7 +286,8 @@ namespace force_control{
 
         if(isInSphere){
             I_error *= 0; //clear Integrator
-            F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/(r.norm()+0.01)) + 0.9 * F_repulsion.head(3); //assume Theta = Lambda
+            F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/(r.norm()+0.01) - repulsion_D * w) +
+					0.9 * F_repulsion.head(3); //assume Theta = Lambda
         }
         else{ F_repulsion = 0.3 * 0.0 * F_repulsion + 0.7 * F_repulsion; } //command smooth slowdown
 
