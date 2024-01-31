@@ -195,9 +195,9 @@ namespace force_control {
         for(int i = 0; i < 7; ++i){
 
             dq_filtered(i) = alpha(i) * dq(i) + (1 - alpha(i))*dq_filtered(i);
-            tau_impedance_filtered(i) = alpha(i)*tau_impedance(i) + (1 - alpha(i)*tau_impedance_filtered(i));
+            tau_impedance_filtered(i) = alpha(i)*tau_impedance(i) + (1 - alpha(i))*tau_impedance_filtered(i);
             if (!turn_on){
-                tau_friction(i) *= 1-alpha(i); 
+                tau_friction(i) *= (1-alpha(i)); 
                 friction_state(i) = 0;
             }//If tau_impedance is below tau_threshold, we are already accurate enough, no more movement and thus no friction compensation is needed
 
