@@ -238,7 +238,13 @@ namespace force_control{
 		//T = 5*Lambda; //heavy robot
         // position error
         error.head(3) << position - position_d_;
-        // orientation error
+	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
+	    double positionLowerBound = -0.15 * 250.0/K(0,0);
+	    double positionUpperBound = 0.15 * 250.0/K(0,0);
+	    // Apply clamping
+	    error.head(3) = error.head(3).cwiseMax(positionLowerBound).cwiseMin(positionUpperBound);
+
+	    // orientation error
         if (orientation_d_.coeffs().dot(orientation.coeffs()) < 0.0) {
             orientation.coeffs() << -orientation.coeffs();
         }
@@ -247,6 +253,13 @@ namespace force_control{
         error.tail(3) << error_quaternion.x(), error_quaternion.y(), error_quaternion.z();
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
+
+	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
+	    double rotationLowerBound = -0.1 * 80/K(3,3);
+	    double rotationUpperBound = 0.1 * 80/K(3,3);
+	    // Apply clamping
+	    error.tail(3) = error.tail(3).cwiseMax(rotationLowerBound).cwiseMin(rotationUpperBound);
+
 
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
         I_error += (1-isInSphere) * Sm * dt* (1-control_mode) * integrator_weights.cwiseProduct(error);

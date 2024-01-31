@@ -193,11 +193,11 @@ namespace force_control {
     void CartesianImpedanceController::HandPoseCallback(const geometry_msgs::Point &right_hand_pos) {
 		do_logging = true;
         ROS_INFO("received hand position");
-        R = 0.3;
+        R = 0.25;
 
-        C.x() = 0.05 * right_hand_pos.x + 0.95 * C.x(); //smoothing
-        C.y() = 0.05 * right_hand_pos.y + 0.95 * C.y();
-        C.z() = 0.05 * right_hand_pos.z + 0.95 * C.z();
+        C.x() = 0.8 * right_hand_pos.x + 0.2 * C.x(); //smoothing
+        C.y() = 0.8 * right_hand_pos.y + 0.2 * C.y();
+        C.z() = 0.8 * right_hand_pos.z + 0.2 * C.z();
 
 
     }
