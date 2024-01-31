@@ -1,21 +1,29 @@
 #Every line has the friction parameters for every joint (0-7) described in the comment above it
-#static friction component
-1.2325 
-0.78 
-1.19 
-1.255 
-1.5 
-0.86 
-0.668
-#component a of linear friction model (a + b*dq)
-0.98
-0.78 
-1.12 
-1.01 
-0.98 
-0.91 
-0.43 
-#component b of linear friction model (a + b*dq)
+#Coulomb friction component
+1.2325
+0.78
+1.19
+1.255
+1.5
+0.86
+0.0
+#friction offset depending on movement direction (in all following formulas "d") - sgn(tau_impedance)*F_c + d 
+0
+0
+0
+0
+0
+0
+0
+#component a of linear friction model (a*sgn(dq) + b*dq + d)
+1.020625
+1.48125
+1.180625
+1.139375
+1.08
+0.805
+0.439875
+#component b of linear friction model (a*sgn(dq) + b*dq + d)
 1.18 
 0 
 0.55
@@ -23,15 +31,15 @@
 0.935 
 0.54 
 0.45
-#component a of quadratic friction model (a + b*dq + c*dq²)
-0 
-0 
-0 
-0 
-1.5 
-0 
-0.668
-#component b of quadratic friction model (a + b*dq + c*dq²)
+#component a of quadratic friction model (a*sgn(dq) + b*dq + c*dq²+d)
+0.040625
+0.70125
+0.060625
+0.129375
+1.6
+-0.105
+0.677875
+#component b of quadratic friction model (a*sgn(dq) + b*dq + c*dq²+d)
 0 
 0 
 0 
@@ -39,7 +47,7 @@
 -4.035 
 0 
 -3.22
-#component c of quadratic friction model (a + b*dq + c*dq²)
+#component c of quadratic friction model (a*sgn(dq) + b*dq + c*dq²+d)
 0 
 0 
 0 

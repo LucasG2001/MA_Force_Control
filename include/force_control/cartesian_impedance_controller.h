@@ -110,7 +110,9 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> tau_friction = Eigen::MatrixXd::Zero(7,1); //torque compensating friction
         const Eigen::VectorXd error_goal =  (Eigen::VectorXd(6) << .001, .001, .001, .01, .01, .01).finished(); //Sufficient good errors needed for friction compensation
         Eigen::Matrix<double, 7, 1> tau_threshold = Eigen::MatrixXd::Zero(7,1); //Minimum tau_impedance, after which friction compensation should turn on
-        Eigen::Matrix<double, 7, 1> static_friction = Eigen::MatrixXd::Zero(7,1); //friction parameters imported from lists/friction_parameters.txt
+        Eigen::Matrix<double, 7, 1> coulomb_friction = Eigen::MatrixXd::Zero(7,1); //coulomb friction parameters imported from lists/friction_parameters.txt
+        Eigen::Matrix<double, 7, 1> offset_friction = Eigen::MatrixXd::Zero(7,1); //offset of friction in one direction
+        Eigen::Matrix<double, 7, 1> static_friction_minus = Eigen::MatrixXd::Zero(7,1); //static friction in negative direction
         Eigen::Matrix<double, 7, 1> lin_a;//component a of linear friction model (a + b*dq)
         Eigen::Matrix<double, 7, 1> lin_b;//component b of linear friction model (a + b*dq)
         Eigen::Matrix<double, 7, 1> qua_a;//component a of quadratic friction model (a + b*dq + c*dq²)

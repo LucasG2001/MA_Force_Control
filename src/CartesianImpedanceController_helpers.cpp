@@ -24,12 +24,12 @@ namespace force_control {
     void CartesianImpedanceController::log_values_to_file(bool log){
         Eigen::Matrix<double, 6, 1> integrator_weights;
         if(log){
-            std::ofstream /*F_log, F_error, pose_error , friction_of,*/  tau_log, dq_log /*, coriolis_of threshold*/;
+            std::ofstream /*F_log, F_error,*/ pose_error , friction_of,  tau_log /*, dq_log , coriolis_of, threshold*/;
 
             tau_log.open("/home/viktor/Documents/BA/log/tau.txt", std::ios::app);
             //std::cout << "test";
             if (tau_log.is_open()){
-            tau_log << count << "," << tau_d.transpose() << " , " << q.transpose() << gravity.transpose() << "\n";
+            tau_log << count << "," << tau_impedance.transpose() << " , " << gravity.transpose() << "\n";
             }
             tau_log.close();   
 
@@ -40,11 +40,11 @@ namespace force_control {
             // }
             // coriolis_of.close();   
 
-            // friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt", std::ios::app);
-            // if (friction_of.is_open()){
-            // friction_of << count << "," << tau_friction.transpose() << " , " << friction_state.transpose() << "\n";
-            // }
-            // friction_of.close();
+            friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt", std::ios::app);
+            if (friction_of.is_open()){
+            friction_of << count << "," << tau_friction.transpose() << " , " << friction_state.transpose() << "\n";
+            }
+            friction_of.close();
 
         //    < threshold.open("/home/viktor/Documents/BA/log/threshold.txt", std::ios::app);
         //     if (threshold.is_open()){
@@ -64,19 +64,19 @@ namespace force_control {
             // }
             // F_error.close();
 
-            // Eigen::Vector3d desired_orientation = orientation_d_.toRotationMatrix().eulerAngles(0,1,2);
-            // pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt", std::ios::app);
-            // if (pose_error.is_open()){
-            //     pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
-            // }
-            // pose_error.close();
-
-            dq_log.open("/home/viktor/Documents/BA/log/dq.txt", std::ios::app);
-            //std::cout << "test";
-            if (dq_log.is_open()){
-            dq_log << count << "," << dq.transpose() << " , " << dq_d.transpose() <<  "\n";
+            Eigen::Vector3d desired_orientation = orientation_d_.toRotationMatrix().eulerAngles(0,1,2);
+            pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt", std::ios::app);
+            if (pose_error.is_open()){
+                pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
             }
-            dq_log.close();
+            pose_error.close();
+
+            // dq_log.open("/home/viktor/Documents/BA/log/dq.txt", std::ios::app);
+            // //std::cout << "test";
+            // if (dq_log.is_open()){
+            // dq_log << count << "," << dq.transpose() << " , " << dq_d.transpose() <<  "\n";
+            // }
+            // dq_log.close();
 
             // if( count % 1000 == 0){
             //     std::cout << M << "\n";
@@ -113,7 +113,7 @@ namespace force_control {
 
    //Loads friction parameters into vector friction_parameters from file specified in filePath
     void CartesianImpedanceController::load_friction_parameters(const std::string& filePath){
-        Eigen::VectorXd friction_parameters(42);
+        Eigen::VectorXd friction_parameters(49);
         std::ifstream file(filePath);
         
         if (!file.is_open()) {
@@ -123,7 +123,7 @@ namespace force_control {
         std::string line;
         int i = 0; 
 
-        while (i < 42 && std::getline(file, line)) {
+        while (i < 49 && std::getline(file, line)) {
             if (line.empty() || line[0] == '#') {
                 // Disregard empty lines or lines starting with '#'
                 continue;
@@ -141,42 +141,46 @@ namespace force_control {
 
         }
 
-        static_friction = friction_parameters.segment(0, 7);
-        lin_a = friction_parameters.segment(7,7);
-        lin_b = friction_parameters.segment(14,7);
-        qua_a = friction_parameters.segment(21,7);
-        qua_b = friction_parameters.segment(28,7);
-        qua_c = friction_parameters.segment(35,7);
-        std::cout << static_friction << "\n";
+        coulomb_friction = friction_parameters.segment(0, 7);
+        offset_friction = friction_parameters.segment(7,7);
+        lin_a = friction_parameters.segment(14,7);
+        lin_b = friction_parameters.segment(21,7);
+        qua_a = friction_parameters.segment(28,7);
+        qua_b = friction_parameters.segment(35,7);
+        qua_c = friction_parameters.segment(42,7);
+        std::cout << coulomb_friction << "\n";
+        std::cout << offset_friction << "\n";
         std::cout << lin_a << "\n";
         std::cout << lin_b << "\n";
         std::cout << qua_a << "\n";
         std::cout << qua_b << "\n";
         std::cout << qua_c << "\n";
-
         file.close(); // Close the file after reading
+
+        static_friction_minus = offset_friction - coulomb_friction;
+        std::cout << static_friction_minus << "\n";
 
     }
 
 
     void CartesianImpedanceController::linear_friction(const int &i){
-        Eigen::VectorXd alpha_linear = (Eigen::VectorXd(7) << 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001).finished(); 
-        double tau_friction_d = lin_a(i) + lin_b(i)*dq_filtered(i);
-        tau_friction(i) = sgn(tau_impedance_filtered(i)) * alpha_linear(i) * tau_friction_d + (1 - alpha_linear(i))*tau_friction(i);
+        double alpha_linear = 0.001;
+        double tau_friction_d = lin_a(i)*sgn(dq_filtered(i)) + lin_b(i)*dq_filtered(i) + offset_friction(i);
+        tau_friction(i) = sgn(tau_impedance_filtered(i)) * std::abs(tau_friction_d) /* * alpha_linear + (1 - alpha_linear)*tau_friction(i)*/;
     }
 
     void CartesianImpedanceController::quadratic_friction(const int &i){
-        Eigen::VectorXd alpha_quadratic = (Eigen::VectorXd(7) << 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001).finished();
-        double tau_friction_d = qua_a(i) + qua_b(i)*dq_filtered(i) + qua_c(i) * dq_filtered(i)*dq_filtered(i);
-        tau_friction(i) = sgn(tau_impedance_filtered(i)) * alpha_quadratic(i) * tau_friction_d + (1 - alpha_quadratic(i))*tau_friction(i);
+        double alpha_quadratic = 0.001;
+        double tau_friction_d = qua_a(i)*sgn(dq_filtered(i)) + qua_b(i)*dq_filtered(i) + qua_c(i) * dq_filtered(i)*dq_filtered(i) *sgn(dq_filtered(i)) + offset_friction(i);
+        tau_friction(i) = sgn(tau_impedance_filtered(i)) * std::abs(tau_friction_d) /* * alpha_quadratic + (1 - alpha_quadratic)*tau_friction(i)*/;
     }
 
     //Calculates the friction forces acting on the robot's joints depending on joint rotational speed. 
     //Exerts torque up to a certain empirically detected static friction threshold. 
     //TODO: Afterwards, goes into the viscous domain and follows a linear raise depending on empiric parameters
     void CartesianImpedanceController::calculate_tau_friction(){
-
-        Eigen::VectorXd alpha = static_friction / 50.0;//constant for exponential filter in relation to static friction moment
+        
+        double alpha = 0.1;//constant for exponential filter in relation to static friction moment
         tau_threshold = jacobian.transpose() * Sm * K * error_goal;//minimal moment to achieve target precision by stiffness
 
         //After which speed we go from quadratic to linear friction model:
@@ -185,25 +189,25 @@ namespace force_control {
 
 
 
-        for (int i = 0; i < 7; ++i){ 
-            if (std::abs(tau_impedance_filtered(i)) > std::abs(tau_threshold(i))){
-                turn_on = true;
-                break;
-            }
-        }//If at least one of the joints is experiencing tau_impedance, all the joints should do friction compensation
+        // for (int i = 0; i < 7; ++i){ 
+        //     if (std::abs(tau_impedance_filtered(i)) > std::abs(tau_threshold(i))){
+        //         turn_on = true;
+        //         break;
+        //     }
+        // }//If at least one of the joints is experiencing tau_impedance, all the joints should do friction compensation
 
         for(int i = 0; i < 7; ++i){
 
-            dq_filtered(i) = alpha(i) * dq(i) + (1 - alpha(i))*dq_filtered(i);
-            tau_impedance_filtered(i) = alpha(i)*tau_impedance(i) + (1 - alpha(i)*tau_impedance_filtered(i));
-            if (!turn_on){
-                tau_friction(i) *= 1-alpha(i); 
+            dq_filtered(i) = alpha * dq(i) + (1 - alpha)*dq_filtered(i);
+            tau_impedance_filtered(i) = alpha*tau_impedance(i) + (1 - alpha)*tau_impedance_filtered(i);
+            if (/*!turn_on*/std::abs(tau_impedance_filtered(i)) < std::abs(tau_threshold(i))){//forgot the std::abs for tau_threshold and worked better without
+                tau_friction(i) *= 1-alpha; 
                 friction_state(i) = 0;
             }//If tau_impedance is below tau_threshold, we are already accurate enough, no more movement and thus no friction compensation is needed
 
             else if (std::abs(dq_filtered(i)) < 0.005 || i == 1){
-                double tau_friction_d = 2 * static_friction(i) / (1 + std::exp(-200*dq_filtered(i))) - static_friction(i); //sigmoid function for region around 0
-                tau_friction(i) = sgn(tau_impedance_filtered(i))*tau_friction_d;
+                tau_friction(i) = 2 * coulomb_friction(i) / (1 + std::exp(-200*std::abs(dq_filtered(i))*sgn(tau_impedance_filtered(i)))) + static_friction_minus(i); //sigmoid function for region around 0
+                // tau_friction(i) = sgn(tau_impedance_filtered(i))*std::abs(tau_friction_d);
                 friction_state(i) = 1;
             }//static friction, friction is constant for joint 1 at every speed
 

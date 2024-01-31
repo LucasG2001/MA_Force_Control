@@ -203,14 +203,14 @@ namespace force_control{
 
         //loggers
 
-        std::ofstream F;
-        F.open("/home/viktor/Documents/BA/log/F.txt");
-        F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
-        F.close();
+        // std::ofstream F;
+        // F.open("/home/viktor/Documents/BA/log/F.txt");
+        // F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
+        // F.close();
 
         std::ofstream tau;
         tau.open("/home/viktor/Documents/BA/log/tau.txt");
-        tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 q0 q1 q2 q3 q4 q5 q6 g0 g1 g2 g3 g4 g5 g6 \n";
+        tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 g0 g1 g2 g3 g4 g5 g6 \n";
         tau.close();
 
         // std::ofstream dq;
@@ -287,7 +287,7 @@ namespace force_control{
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
         Eigen::Matrix<double, 6, 1> integrator_weights;
-        integrator_weights << 150.0, 150.0, 150.0, 120.0, 120.0, 10.0; //give different DoF different integrator constants
+        integrator_weights << 75.0, 75.0, 75.0, 75.0, 75.0, 4.0; //give different DoF different integrator constants
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
         I_error += (1-isInSphere) * integrator_weights.cwiseProduct(Sm * dt* error * (1-control_mode));
 
@@ -298,7 +298,7 @@ namespace force_control{
 
         // compute impedance control Force
         //F_impedance = -Lambda * T.inverse() * (D * (jacobian * dq) + K * error + integrator_weights.cwiseProduct(I_error));
-        F_impedance = -1 * (D * (jacobian * dq) + K * error /*+ I_error*/); //check for numerical issues, assume Lambda = T
+        F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error); //check for numerical issues, assume Lambda = T
         //ROS_INFO_STREAM("CURRENT position is " << position.transpose());
         //ROS_INFO_STREAM("Integrator Force is " << I_error.transpose()); 
         //ROS_INFO_STREAM("Impedance Force is " << F_impedance.transpose()); 
@@ -376,7 +376,7 @@ namespace force_control{
 
         if (test){ //Only set torques for the joint you want to test
             double dq_usr = (-1)*0.25; //desired rotational speed
-            double P = static_friction(joint)/.005*.25; //P-value of P-controller
+            double P = coulomb_friction(joint)/.005*.25; //P-value of P-controller
             double dq_error; //error between dq_usr and dq
             double alpha_ = .001; //gain for exponential filter
             // double k_D = .33 * .5541;  
