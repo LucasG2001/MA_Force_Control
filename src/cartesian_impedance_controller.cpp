@@ -228,10 +228,10 @@ namespace force_control{
         friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 \n";
         friction_of.close();
 
-        // std::ofstream threshold;
-        // friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
-        // friction_of << "time t0 t1 t2 t3 t4 t5 t6 \n";
-        // friction_of.close();
+        std::ofstream threshold;
+        friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
+        friction_of << "time t0 t1 t2 t3 t4 t5 t6 \n";
+        friction_of.close();
 
         // std::ofstream F_error;
         // F_error.open("/Home/Documents/BA/log/joint_0");
@@ -242,6 +242,8 @@ namespace force_control{
         pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
         pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
         pose_error.close();
+
+        std::cout << error_goal_separate.toDenseMatrix() << "\n";
 
         //Load in friction parameters
         load_friction_parameters("/home/viktor/catkin_ws/src/force_control/lists/friction_parameters.txt");

@@ -1,20 +1,20 @@
 #Every line has the friction parameters for every joint (0-7) described in the comment above it
 #Coulomb friction component
-1.2325
-0.78
-1.19
-1.255
-1.5
-0.86
-0.0
+1.273125
+1.48125
+1.250625
+1.384375
+1.6
+0.755
+0.677875
 #friction offset depending on movement direction (in all following formulas "d") - sgn(tau_impedance)*F_c + d 
-0
-0
-0
-0
-0
-0
-0
+-0.040625
+-0.70125
+-0.060625
+-0.129375
+-0.1
+0.105
+-0.009875
 #component a of linear friction model (a*sgn(dq) + b*dq + d)
 1.020625
 1.48125

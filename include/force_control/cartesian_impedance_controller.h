@@ -108,8 +108,13 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> tau_impedance = Eigen::MatrixXd::Zero(7,1); //torque for every joint from Jacobi * F_cmd
         Eigen::Matrix<double, 7, 1> tau_impedance_filtered = Eigen::MatrixXd::Zero(7,1); //filtered impedance torque for friction compensation
         Eigen::Matrix<double, 7, 1> tau_friction = Eigen::MatrixXd::Zero(7,1); //torque compensating friction
+
         const Eigen::VectorXd error_goal =  (Eigen::VectorXd(6) << .001, .001, .001, .01, .01, .01).finished(); //Sufficient good errors needed for friction compensation
         Eigen::Matrix<double, 7, 1> tau_threshold = Eigen::MatrixXd::Zero(7,1); //Minimum tau_impedance, after which friction compensation should turn on
+        const Eigen::DiagonalMatrix<double, 3> error_goal_separate = (Eigen::VectorXd(3) << 0.001, 0.001, 0.001).finished().asDiagonal();
+        Eigen::Matrix<double, 7, 3> tau_threshold_separate = Eigen::MatrixXd::Zero(7,6);
+        Eigen::Matrix<double, 7, 1> tau_threshold_min = Eigen::MatrixXd::Zero(7,1);
+
         Eigen::Matrix<double, 7, 1> coulomb_friction = Eigen::MatrixXd::Zero(7,1); //coulomb friction parameters imported from lists/friction_parameters.txt
         Eigen::Matrix<double, 7, 1> offset_friction = Eigen::MatrixXd::Zero(7,1); //offset of friction in one direction
         Eigen::Matrix<double, 7, 1> static_friction_minus = Eigen::MatrixXd::Zero(7,1); //static friction in negative direction
