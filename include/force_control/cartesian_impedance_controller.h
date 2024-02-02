@@ -62,8 +62,6 @@ namespace force_control {
         void log_values_to_file(bool do_logging);
         void load_friction_parameters(const std::string& filePath);
         void calculate_tau_friction();
-        void linear_friction(const int &i);
-        void quadratic_friction(const int &i);
 
     private:
         // Saturation
