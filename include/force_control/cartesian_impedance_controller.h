@@ -109,11 +109,12 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> tau_impedance_filtered = Eigen::MatrixXd::Zero(7,1); //filtered impedance torque for friction compensation
         Eigen::Matrix<double, 7, 1> tau_friction = Eigen::MatrixXd::Zero(7,1); //torque compensating friction
 
-        const Eigen::VectorXd error_goal =  (Eigen::VectorXd(6) << .001, .001, .001, .01, .01, .01).finished(); //Sufficient good errors needed for friction compensation
+        const Eigen::VectorXd error_goal =  (Eigen::VectorXd(6) << .001, .001, .001, .001, .001, .01).finished(); //Sufficient good errors needed for friction compensation
         Eigen::Matrix<double, 7, 1> tau_threshold = Eigen::MatrixXd::Zero(7,1); //Minimum tau_impedance, after which friction compensation should turn on
-        const Eigen::DiagonalMatrix<double, 3> error_goal_separate = (Eigen::VectorXd(3) << 0.001, 0.001, 0.001).finished().asDiagonal();
-        Eigen::Matrix<double, 7, 3> tau_threshold_separate = Eigen::MatrixXd::Zero(7,6);
-        Eigen::Matrix<double, 7, 1> tau_threshold_min = Eigen::MatrixXd::Zero(7,1);
+        const Eigen::DiagonalMatrix<double, 6> error_goal_separate = error_goal.asDiagonal(); //Diagonal matrix with every error_goal in a separate column
+        Eigen::Matrix<double, 7, 6> tau_threshold_separate = Eigen::MatrixXd::Zero(7,6); //separated tau_thresholds (every error with own column)
+        Eigen::Matrix<double, 7, 1> tau_threshold_min = Eigen::MatrixXd::Zero(7,1); //values used for comparison form tau_threshold_separate
+        Eigen::Matrix<bool, 6, 1> error_goal_met; //compares for every degree of freedom whether error goal is met
 
         Eigen::Matrix<double, 7, 1> coulomb_friction = Eigen::MatrixXd::Zero(7,1); //coulomb friction parameters imported from lists/friction_parameters.txt
         Eigen::Matrix<double, 7, 1> offset_friction = Eigen::MatrixXd::Zero(7,1); //offset of friction in one direction

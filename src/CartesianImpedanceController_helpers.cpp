@@ -28,7 +28,7 @@ namespace force_control {
 
             tau_log.open("/home/viktor/Documents/BA/log/tau.txt", std::ios::app);
             if (tau_log.is_open()){
-            tau_log << count << "," << tau_impedance.transpose() << " , " << gravity.transpose() << "\n";
+            tau_log << count << "," << tau_impedance_filtered.transpose() << " , " << gravity.transpose() << "\n";
             }
             tau_log.close();   
 
@@ -75,8 +75,8 @@ namespace force_control {
             // }
             // dq_log.close();
 
-            if( count % 100 == 0){
-                std::cout << tau_threshold_separate << "\n";
+            if( count % 10 == 0){
+                std::cout << tau_threshold_separate << " , " << error_goal_met << "\n";
                 std::cout << "---------------------------------------------------- \n";
             }
 
@@ -165,6 +165,10 @@ namespace force_control {
         double alpha = 0.1;//constant for exponential filter in relation to static friction moment
         tau_threshold = jacobian.transpose() * Sm * K * error_goal;//minimal moment to achieve target precision by stiffness
         tau_threshold_separate = jacobian.transpose() * Sm * K * error_goal_separate;
+        
+        Eigen::VectorXd error_goal_met_double(6);
+        error_goal_met_double = error_goal_met.cast<double>();
+        tau_threshold_separate.array().rowwise() *= (1-error_goal_met_double.array().transpose()); 
 
         //After which speed we go from quadratic to linear friction model:
         Eigen::VectorXd friction_region_change = (Eigen::VectorXd(7)  << 0.005, 0.005, 0.005, 0.005, 0.2, 0.005, 0.15).finished();
@@ -180,18 +184,18 @@ namespace force_control {
         // }//If at least one of the joints is experiencing tau_impedance, all the joints should do friction compensation
 
         for(int i = 0; i < 7; ++i){
-
-            tau_threshold_min(i) = tau_threshold_separate.row(i).cwiseAbs().maxCoeff();
+                
+            tau_threshold_min(i) = tau_threshold_separate.row(i).sum();
             dq_filtered(i) = alpha * dq(i) + (1 - alpha)*dq_filtered(i);
             tau_impedance_filtered(i) = alpha*tau_impedance(i) + (1 - alpha)*tau_impedance_filtered(i);
 
-            if (/*!turn_on*/std::abs(tau_impedance_filtered(i)) < std::abs(tau_threshold_min(i))){
+            if (/*!turn_on*/0.05 > std::abs(tau_threshold_min(i)) || sgn(tau_impedance_filtered(i)) != sgn(tau_friction(i))){
                 tau_friction(i) *= 1-alpha; 
                 friction_state(i) = 0;
             }//If tau_impedance is below tau_threshold, we are already accurate enough, no more movement and thus no friction compensation is needed
 
             else if (std::abs(dq_filtered(i)) < 0.005 || i == 1){
-                tau_friction(i) = 2 * coulomb_friction(i) / (1 + std::exp(-200*std::abs(dq_filtered(i))*sgn(tau_impedance_filtered(i)))) + static_friction_minus(i); //sigmoid function for region around 0
+                tau_friction(i) = 2 * coulomb_friction(i) / (1 + std::exp(-600*std::abs(dq_filtered(i))*sgn(tau_impedance_filtered(i)))) + static_friction_minus(i); //sigmoid function for region around 0
                 friction_state(i) = 1;
             }//static friction, friction is constant for joint 1 at every speed
 

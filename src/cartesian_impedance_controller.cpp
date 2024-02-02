@@ -288,6 +288,9 @@ namespace force_control{
         error.tail(3) << error_quaternion.x(), error_quaternion.y(), error_quaternion.z();
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
+
+        error_goal_met = (error_goal - error.cwiseAbs()).array() > 0; //elementwise true, if error is met
+
         Eigen::Matrix<double, 6, 1> integrator_weights;
         integrator_weights << 75.0, 75.0, 75.0, 75.0, 75.0, 4.0; //give different DoF different integrator constants
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
