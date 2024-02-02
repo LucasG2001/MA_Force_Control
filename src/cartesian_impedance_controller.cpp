@@ -294,7 +294,8 @@ namespace force_control{
         Eigen::Matrix<double, 6, 1> integrator_weights;
         integrator_weights << 75.0, 75.0, 75.0, 75.0, 75.0, 4.0; //give different DoF different integrator constants
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
-        I_error += (1-isInSphere) * integrator_weights.cwiseProduct(Sm * dt* error * (1-control_mode));
+        I_error = (1-isInSphere) * integrator_weights.cwiseProduct(Sm * dt* error * (1-control_mode));
+        tau_error += jacobian.transpose() * I_error;
 
         for (int i = 0; i < 6; i++){
             double a = I_error(i,0);
@@ -303,7 +304,7 @@ namespace force_control{
 
         // compute impedance control Force
         //F_impedance = -Lambda * T.inverse() * (D * (jacobian * dq) + K * error + integrator_weights.cwiseProduct(I_error));
-        F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error); //check for numerical issues, assume Lambda = T
+        F_impedance = -1 * (D * (jacobian * dq) + K * error); //check for numerical issues, assume Lambda = T
         //ROS_INFO_STREAM("CURRENT position is " << position.transpose());
         //ROS_INFO_STREAM("Integrator Force is " << I_error.transpose()); 
         //ROS_INFO_STREAM("Impedance Force is " << F_impedance.transpose()); 
@@ -372,7 +373,6 @@ namespace force_control{
         }
 
         tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;      
-
         //use for testing. test and joint are given over from demo.cpp to select whether testing is active and what joint is actuated.
         //All other joint torques are set to zero. Goal is to follow the wanted velocity dq_usr
         if(control_mode == 1){
@@ -415,7 +415,7 @@ namespace force_control{
 
         }
         else{
-            tau_d << tau_impedance + tau_nullspace + coriolis + tau_friction; //add nullspace, coriolis and friction components to desired torque
+            tau_d << tau_impedance + tau_nullspace + coriolis + tau_friction - tau_error; //add nullspace, coriolis and friction components to desired torque
         }
 
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
