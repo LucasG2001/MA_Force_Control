@@ -208,47 +208,47 @@ namespace force_control{
         // F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
         // F.close();
 
-        std::ofstream tau;
-        tau.open("/home/viktor/Documents/BA/log/tau.txt");
-        tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 g0 g1 g2 g3 g4 g5 g6 \n";
-        tau.close();
+        // std::ofstream tau;
+        // tau.open("/home/viktor/Documents/BA/log/tau.txt");
+        // tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 norm \n";
+        // tau.close();
 
-        // std::ofstream dq;
-        // dq.open("/home/viktor/Documents/BA/log/dq.txt");
-        // dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
-        // dq.close();
+        // // std::ofstream dq;
+        // // dq.open("/home/viktor/Documents/BA/log/dq.txt");
+        // // dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
+        // // dq.close();
 
-        // std::ofstream coriolis_of;
-        // coriolis_of.open("/home/viktor/Documents/BA/log/coriolis_of.txt");
-        // coriolis_of << "time c0 c1 c2 c3 c4 c5 c6 t0 t1 t2 t3 t4 t5 t6 \n";
-        // coriolis_of.close();
+        // // std::ofstream coriolis_of;
+        // // coriolis_of.open("/home/viktor/Documents/BA/log/coriolis_of.txt");
+        // // coriolis_of << "time c0 c1 c2 c3 c4 c5 c6 t0 t1 t2 t3 t4 t5 t6 \n";
+        // // coriolis_of.close();
 
-        std::ofstream friction_of;
-        friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt");
-        friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 \n";
-        friction_of.close();
+        // std::ofstream friction_of;
+        // friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt");
+        // friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 \n";
+        // friction_of.close();
 
-        std::ofstream threshold;
-        friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
-        friction_of << "time t0 t1 t2 t3 t4 t5 t6 \n";
-        friction_of.close();
+        // std::ofstream threshold;
+        // friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
+        // friction_of << "time t0 t1 t2 t3 t4 t5 t6 \n";
+        // friction_of.close();
 
-        // std::ofstream F_error;
-        // F_error.open("/Home/Documents/BA/log/joint_0");
-        // F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
-        // F_error.close();
+        // // std::ofstream F_error;
+        // // F_error.open("/Home/Documents/BA/log/joint_0");
+        // // F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
+        // // F_error.close();
 
-        std::ofstream F_ext_friction;
-        F_ext_friction.open("/home/viktor/Documents/BA/log/F_ext_friction.txt");
-        F_ext_friction << "time Fx Fy Fz Mx My Mz Ffx Ffy Ffz Mfx Mfy Mfz \n";
-        F_ext_friction.close();
+        // std::ofstream F_ext_friction;
+        // F_ext_friction.open("/home/viktor/Documents/BA/log/F_ext_friction.txt");
+        // F_ext_friction << "time Fx Fy Fz Mx My Mz Ffx Ffy Ffz Mfx Mfy Mfz \n";
+        // F_ext_friction.close();
 
-        std::ofstream pose_error;
-        pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
-        pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
-        pose_error.close();
+        // std::ofstream pose_error;
+        // pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
+        // pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
+        // pose_error.close();
 
-        std::cout << error_goal_separate.toDenseMatrix() << "\n";
+        // std::cout << error_goal_separate.toDenseMatrix() << "\n";
 
         //Load in friction parameters
         load_friction_parameters("/home/viktor/catkin_ws/src/force_control/lists/friction_parameters.txt");
@@ -268,6 +268,7 @@ namespace force_control{
         // convert to Eigen
         coriolis = Eigen::Map<Eigen::Matrix<double, 7, 1>>(coriolis_array.data());
         jacobian = Eigen::Map<Eigen::Matrix<double, 6, 7>>(jacobian_array.data());
+        jacobian_norm = jacobian.norm();
         gravity = Eigen::Map<Eigen::Matrix<double, 7, 1>>(gravity_array.data());
         q = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.q.data());
         dq = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.dq.data());
@@ -312,8 +313,7 @@ namespace force_control{
 
         //Force PID
         
-        F_ext = Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
-        
+        F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter        
         /*I_F_error += dt*(F_contact_des - F_ext); //+ in gazebo (-) on real robot
         F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des; //no need to multiply with Sf since it is done afterwards anyway
         */
@@ -430,7 +430,13 @@ namespace force_control{
         update_stiffness_and_references();
 
         //logging
-        log_values_to_file(log_rate_() && do_logging);
+        //log_values_to_file(log_rate_() && do_logging);
+
+        if(log_rate_() && do_logging){
+            std::cout << robot_state.theta << "\n" << "--------------------------\n";
+
+        }
+
         //log_values_to_file(do_logging);
         
     }
