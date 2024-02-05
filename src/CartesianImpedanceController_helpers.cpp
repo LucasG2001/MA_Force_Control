@@ -24,7 +24,7 @@ namespace force_control {
     void CartesianImpedanceController::log_values_to_file(bool log){
         Eigen::Matrix<double, 6, 1> integrator_weights;
         if(log){
-            std::ofstream /*F_log, F_error,*/ pose_error , friction_of,  tau_log /*, dq_log , coriolis_of*/, threshold;
+            std::ofstream /*F_log, F_error, pose_error ,*/ friction_of,  tau_log /*, dq_log , coriolis_of, threshold*/, F_ext_friction;
 
             tau_log.open("/home/viktor/Documents/BA/log/tau.txt", std::ios::app);
             if (tau_log.is_open()){
@@ -44,11 +44,17 @@ namespace force_control {
             }
             friction_of.close();
 
-            threshold.open("/home/viktor/Documents/BA/log/threshold.txt", std::ios::app);
-            if (threshold.is_open()){
-            threshold << count << "," << tau_threshold_min.transpose() << "\n";
+            F_ext_friction.open("/home/viktor/Documents/BA/log/F_ext_friction.txt", std::ios::app);
+            if(F_ext_friction.is_open()){
+                F_ext_friction << count << "," << F_ext.transpose() << F_friction.transpose() << "\n";
             }
-            threshold.close();   
+            F_ext_friction.close();
+
+            // threshold.open("/home/viktor/Documents/BA/log/threshold.txt", std::ios::app);
+            // if (threshold.is_open()){
+            // threshold << count << "," << tau_threshold_min.transpose() << "\n";
+            // }
+            // threshold.close();   
 
             // F_log.open("/home/viktor/Documents/BA/log/F.txt", std::ios::app);
             // if (F_log.is_open()){
@@ -62,12 +68,12 @@ namespace force_control {
             // }
             // F_error.close();
 
-            Eigen::Vector3d desired_orientation = orientation_d_.toRotationMatrix().eulerAngles(0,1,2);
-            pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt", std::ios::app);
-            if (pose_error.is_open()){
-                pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
-            }
-            pose_error.close();
+            // Eigen::Vector3d desired_orientation = orientation_d_.toRotationMatrix().eulerAngles(0,1,2);
+            // pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt", std::ios::app);
+            // if (pose_error.is_open()){
+            //     pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
+            // }
+            // pose_error.close();
 
             // dq_log.open("/home/viktor/Documents/BA/log/dq.txt", std::ios::app);
             // if (dq_log.is_open()){
@@ -75,10 +81,11 @@ namespace force_control {
             // }
             // dq_log.close();
 
-            if( count % 100 == 0){
-                std::cout << tau_threshold_separate << "\n";
-                std::cout << "---------------------------------------------------- \n";
-            }
+            // if( count % 100 == 0){
+            //     std::cout << F_ext << "\n";
+            //     std::cout << "---------------------------------------------------- \n";
+            //     std::cout << gravity_force.transpose() << "\n" << "---------------------------------------------" << std::endl;
+            // }
 
             count += 1;
         }
@@ -162,7 +169,7 @@ namespace force_control {
     //TODO: Afterwards, goes into the viscous domain and follows a linear raise depending on empiric parameters
     void CartesianImpedanceController::calculate_tau_friction(){
         
-        double alpha = 0.1;//constant for exponential filter in relation to static friction moment
+        double alpha = 0.01;//constant for exponential filter in relation to static friction moment
         tau_threshold = jacobian.transpose() * Sm * K * error_goal;//minimal moment to achieve target precision by stiffness
         tau_threshold_separate = jacobian.transpose() * Sm * K * error_goal_separate;
 
@@ -186,7 +193,7 @@ namespace force_control {
             tau_impedance_filtered(i) = alpha*tau_impedance(i) + (1 - alpha)*tau_impedance_filtered(i);
 
             if (/*!turn_on*/std::abs(tau_impedance_filtered(i)) < std::abs(tau_threshold_min(i))){
-                tau_friction(i) *= 1-alpha; 
+                tau_friction(i) *= 0.9; 
                 friction_state(i) = 0;
             }//If tau_impedance is below tau_threshold, we are already accurate enough, no more movement and thus no friction compensation is needed
 

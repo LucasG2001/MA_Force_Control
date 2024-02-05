@@ -238,6 +238,11 @@ namespace force_control{
         // F_error << "time eFx eFy eFz eMx eMy eMz f7\n";
         // F_error.close();
 
+        std::ofstream F_ext_friction;
+        F_ext_friction.open("/home/viktor/Documents/BA/log/F_ext_friction.txt");
+        F_ext_friction << "time Fx Fy Fz Mx My Mz Ffx Ffy Ffz Mfx Mfy Mfz \n";
+        F_ext_friction.close();
+
         std::ofstream pose_error;
         pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
         pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
@@ -306,9 +311,10 @@ namespace force_control{
         //ROS_INFO_STREAM("Impedance Force is " << F_impedance.transpose()); 
 
         //Force PID
-        /*
-        F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
-        I_F_error += dt*(F_contact_des - F_ext); //+ in gazebo (-) on real robot
+        
+        F_ext = Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
+        
+        /*I_F_error += dt*(F_contact_des - F_ext); //+ in gazebo (-) on real robot
         F_cmd = 0.2 * (F_contact_des - F_ext) + 0.1 * I_F_error + F_contact_des; //no need to multiply with Sf since it is done afterwards anyway
         */
         //F_cmd = F_contact_des;
@@ -320,7 +326,6 @@ namespace force_control{
         // pseudoinverse for nullspace handling
         Eigen::MatrixXd jacobian_transpose_pinv;
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
-
         //construct external repulsion force
         /*
         Eigen::Vector3d r = position - C; // compute vector between EE and sphere
@@ -362,6 +367,7 @@ namespace force_control{
 
         if(friction){
             calculate_tau_friction(); //Gets friction forces for current state
+            F_friction = jacobian_transpose_pinv * tau_friction;
         }
         else{
             tau_friction.setZero();
