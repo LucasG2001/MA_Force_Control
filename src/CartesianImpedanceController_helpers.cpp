@@ -24,7 +24,7 @@ namespace force_control {
     void CartesianImpedanceController::log_values_to_file(bool log){
         Eigen::Matrix<double, 6, 1> integrator_weights;
         if(log){
-            std::ofstream /*F_log, F_error,*/ pose_error, friction_of,  tau_log /*, dq_log , coriolis_of*/, threshold/*, F_ext_friction*/;
+            std::ofstream /*F_log, F_error,*/ pose_error , friction_of,  tau_log , dq_log /*, coriolis_of, threshold*/;
 
             tau_log.open("/home/viktor/Documents/BA/log/tau.txt", std::ios::app);
             if (tau_log.is_open()){
@@ -75,11 +75,11 @@ namespace force_control {
             }
             pose_error.close();
 
-            // dq_log.open("/home/viktor/Documents/BA/log/dq.txt", std::ios::app);
-            // if (dq_log.is_open()){
-            // dq_log << count << "," << dq.transpose() << " , " << dq_d.transpose() <<  "\n";
-            // }
-            // dq_log.close();
+            dq_log.open("/home/viktor/Documents/BA/log/dq.txt", std::ios::app);
+            if (dq_log.is_open()){
+            dq_log << count << "," << dq_filtered.transpose() << " , " << dq_d.transpose() <<  "\n";
+            }
+            dq_log.close();
 
             // if( count % 100 == 0){
             //     std::cout << F_ext << "\n";
@@ -155,15 +155,6 @@ namespace force_control {
 
     }
 
-
-    void CartesianImpedanceController::linear_friction(const int &i){
-        tau_friction(i) = lin_a(i)*sgn(dq_filtered(i)) + lin_b(i)*dq_filtered(i) + offset_friction(i);
-    }
-
-    void CartesianImpedanceController::quadratic_friction(const int &i){
-        tau_friction(i) = qua_a(i)*sgn(dq_filtered(i)) + qua_b(i)*dq_filtered(i) + qua_c(i) * dq_filtered(i)*dq_filtered(i) *sgn(dq_filtered(i)) + offset_friction(i);
-    }
-
     //Calculates the friction forces acting on the robot's joints depending on joint rotational speed. 
     //Exerts torque up to a certain empirically detected static friction threshold. 
     //TODO: Afterwards, goes into the viscous domain and follows a linear raise depending on empiric parameters
@@ -191,27 +182,30 @@ namespace force_control {
             tau_threshold_min(i) = tau_threshold_separate.row(i).cwiseAbs().maxCoeff();
             dq_filtered(i) = alpha * dq(i) + (1 - alpha)*dq_filtered(i);
             tau_impedance_filtered(i) = alpha*tau_impedance(i) + (1 - alpha)*tau_impedance_filtered(i);
+            int dq_sign = sgn(dq_filtered(i));
+            int tau_sign = sgn(tau_impedance_filtered(i));
+            double tau_current = tau_friction(i);
 
-
-            if (/*!turn_on*/0.05 > std::abs(tau_threshold_min(i))){
+            if (/*!turn_on*/std::abs(tau_impedance_filtered(i)) < std::abs(tau_threshold_min(i))){
                 tau_friction(i) *= 0.9; 
                 friction_state(i) = 0;
             }//If tau_impedance is below tau_threshold, we are already accurate enough, no more movement and thus no friction compensation is needed
 
             else if (std::abs(dq_filtered(i)) < 0.005 || i == 1){
-                tau_friction(i) = 2 * coulomb_friction(i) / (1 + std::exp(-800*std::abs(dq_filtered(i))*sgn(tau_impedance_filtered(i)))) + static_friction_minus(i); //sigmoid function for region around 0
+                tau_friction(i) = 2 * coulomb_friction(i) / (1 + std::exp(sigmoid_param(i)*std::abs(dq_filtered(i))* tau_sign)) + static_friction_minus(i); //sigmoid function for region around 0
                 friction_state(i) = 1;
             }//static friction, friction is constant for joint 1 at every speed
 
             else if (std::abs(dq_filtered(i)) >= friction_region_change(i)){
-                linear_friction(i);
+                tau_friction(i) = lin_a(i)*sgn(dq_filtered(i)) + lin_b(i)*dq_filtered(i) + offset_friction(i);
                 friction_state(i) = 3;
             }
             else{
-                quadratic_friction(i);
+                tau_friction(i) = qua_a(i)* dq_sign + qua_b(i)*dq_filtered(i) + qua_c(i) * dq_filtered(i)*dq_filtered(i) * dq_sign + offset_friction(i);
                 friction_state(i) = 2;
             }
-            tau_friction(i) = sgn(tau_impedance_filtered(i))*std::abs(tau_friction(i));
+            tau_friction(i) = tau_sign*std::abs(tau_friction(i));
+            tau_friction(i) = (tau_sign != sgn(tau_current)) ? .9* tau_friction(i) + 0.1 * tau_current : tau_friction(i);
 
         }
 
