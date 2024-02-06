@@ -115,7 +115,7 @@ namespace force_control {
         Eigen::Matrix<double, 7, 6> tau_threshold_separate = Eigen::MatrixXd::Zero(7,6); //separated tau_thresholds (every error with own column)
         Eigen::Matrix<double, 7, 1> tau_threshold_min = Eigen::MatrixXd::Zero(7,1); //values used for comparison form tau_threshold_separate
         Eigen::Matrix<bool, 6, 1> error_goal_met; //compares for every degree of freedom whether error goal is met
-
+        const Eigen::VectorXd sigmoid_param = (Eigen::VectorXd(7) << -200, -200, -200, -200, -200, -200, -100).finished();
         Eigen::Matrix<double, 7, 1> coulomb_friction = Eigen::MatrixXd::Zero(7,1); //coulomb friction parameters imported from lists/friction_parameters.txt
         Eigen::Matrix<double, 7, 1> offset_friction = Eigen::MatrixXd::Zero(7,1); //offset of friction in one direction
         Eigen::Matrix<double, 7, 1> static_friction_minus = Eigen::MatrixXd::Zero(7,1); //static friction in negative direction
@@ -146,7 +146,7 @@ namespace force_control {
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
         unsigned int count = 0; //logging
-        franka_hw::TriggerRate log_rate_{50}; //logging
+        franka_hw::TriggerRate log_rate_{1000}; //logging
         const double dt = 0.001;
 
         //repulsion sphere around right hand;
