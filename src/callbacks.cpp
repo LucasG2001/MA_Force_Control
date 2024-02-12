@@ -133,6 +133,11 @@ namespace force_control {
             std::lock_guard<std::mutex> position_d_target_mutex_lock(
                     position_and_orientation_d_target_mutex_);
             position_d_target_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+			// Safety regulation (sanity check to keep desired position inside of workspace, length of panda robot is approx 1.12m)
+			if (position_d_target_.norm() > 0.85){
+				position_d_target_ = (0.85/position_d_target_.norm()) * position_d_target_;
+				ROS_INFO("Desired Position is out of Workspace bounds");
+			}
             Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
             orientation_d_target_.coeffs() << msg->pose.orientation.x, msg->pose.orientation.y,
                     msg->pose.orientation.z, msg->pose.orientation.w;
