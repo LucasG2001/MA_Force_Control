@@ -200,9 +200,9 @@ namespace force_control {
         ROS_INFO("received hand position");
         R = 0.25;
 
-        C.x() = 0.8 * right_hand_pos.x + 0.2 * C.x(); //smoothing
-        C.y() = 0.8 * right_hand_pos.y + 0.2 * C.y();
-        C.z() = 0.8 * right_hand_pos.z + 0.2 * C.z();
+        C.x() = right_hand_pos.x; //smoothing
+        C.y() = right_hand_pos.y;
+        C.z() = right_hand_pos.z;
 
 
     }
