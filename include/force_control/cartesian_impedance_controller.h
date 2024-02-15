@@ -47,17 +47,20 @@ namespace force_control {
                 moveit_action_server_node("cartesian_impedance_controller"),
                 moveit_action_server(moveit_action_server_node, "follow_joint_trajectory", boost::bind(&CartesianImpedanceController::action_callback, this, _1, &moveit_action_server), false)
         {
-	        integrator_weights << 120.0, 120.0, 120.0, 95.0, 95.0, 4.0; //give different DoF different integrator constants
-		        max_I << 10.0, 10.0, 10.0, 8, 8, 2; //  saturation
+	        integrator_weights << 100.0, 100.0, 100.0, 80.0, 80.0, 2.0; //give different DoF different integrator constants
+		        max_I << 8.0, 8.0, 8.0, 5, 5, 2; //  saturation
 	        nullspace_stiffness_target_ = 0.0001;
 	        K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
 	        K.bottomRightCorner(3, 3) << 50, 0, 0, 0, 65, 0, 0, 0, 10;
 	        D.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
 	        D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
-	        repulsion_K = K.topLeftCorner(3,3) * 0.75;
+	        repulsion_K = K.topLeftCorner(3,3) * 1;
+	        repulsion_D = D.topLeftCorner(3,3) * 0.1;
 	        cartesian_stiffness_target_ = K;
 	        cartesian_damping_target_ = D;
-	        //construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
+			repulsion_K_target_ = repulsion_K;
+			repulsion_D_target_ = repulsion_D;
+			//construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
 	        R = 0.01; C << 0.0, 0, 0.0;
 			moveit_action_server.start();
 
@@ -128,7 +131,7 @@ namespace force_control {
         //repulsion sphere around right hand;
         bool isInSphere = false;
         double R; //safety bubble radius
-        Eigen::Vector3d r; //distance EE to safety bubble position - C
+        Eigen::Vector3d r; //distance of nearest control point to safety bubble position - C
         Eigen::Vector3d C;
         //all included Forces
         Eigen::Matrix<double, 6, 1> F_repulsion, F_potential, F_impedance;

@@ -134,6 +134,9 @@ namespace force_control {
                     position_and_orientation_d_target_mutex_);
             position_d_target_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
 			// Safety regulation (sanity check to keep desired position inside of workspace, length of panda robot is approx 1.12m)
+			if (position_d_target_.x() <= 0.25) { position_d_target_.x() = 0.26; }
+	        if (abs(position_d_target_.y()) > 0.6) { position_d_target_.y() *= 0.6/abs(position_d_target_.y()); }
+	        if (position_d_target_.z() <= 0.01) { position_d_target_.z() = 0.035; }
 			if (position_d_target_.norm() > 0.85){
 				position_d_target_ = (0.85/position_d_target_.norm()) * position_d_target_;
 				ROS_INFO("Desired Position is out of Workspace bounds");
@@ -197,8 +200,8 @@ namespace force_control {
 
     void CartesianImpedanceController::HandPoseCallback(const geometry_msgs::Point &right_hand_pos) {
 		do_logging = true;
-        // ROS_INFO("received hand position");
-        R = 0.25;
+        //ROS_INFO("received hand position");
+        R = 0.3;
 
         C.x() = 0.5 * right_hand_pos.x + 0.5 * C.x(); //smoothing
         C.y() = 0.5 * right_hand_pos.y + 0.5 * C.y();

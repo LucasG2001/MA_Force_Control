@@ -215,14 +215,17 @@ namespace force_control{
                                                      const ros::Duration& /*period*/) {
         // get state variables
         franka::RobotState robot_state = state_handle_->getRobotState();
+	    std::array<double, 16> joint7 = model_handle_-> getPose(franka::Frame::kJoint7);
         std::array<double, 49> mass = model_handle_->getMass();
         std::array<double, 7> coriolis_array = model_handle_->getCoriolis();
-        std::array<double, 42> jacobian_array =
-                model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
+        std::array<double, 42> jacobian_array = model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
+	    std::array<double, 42> jac_j7 = model_handle_->getZeroJacobian(franka::Frame::kJoint7);
 
         // convert to Eigen
+	    Eigen::Map<Eigen::Matrix<double, 3, 1>> joint7_position(joint7.data() + 12, 3);
         Eigen::Map<Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
         Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
+	    Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian_j7(jac_j7.data());
         Eigen::Map<Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
         Eigen::Map<Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
         Eigen::Map<Eigen::Matrix<double, 7, 7>> M(mass.data());
@@ -262,7 +265,7 @@ namespace force_control{
 
 
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
-        I_error += (1-isInSphere) * Sm * dt* (1-control_mode) * integrator_weights.cwiseProduct(error);
+        I_error +=  Sm * dt* (1-control_mode) * integrator_weights.cwiseProduct(error);
         for (int i = 0; i < 6; i++){
             double a = I_error(i,0);
             I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation
@@ -278,41 +281,44 @@ namespace force_control{
 		//F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
 
         // allocate variables
-        Eigen::VectorXd tau_nullspace(7), tau_d(7), tau_impedance(7);
+        Eigen::VectorXd tau_nullspace(7), tau_d(7), tau_impedance(7), tau_repulsion(7);
         // pseudoinverse for nullspace handling
-        Eigen::MatrixXd jacobian_transpose_pinv;
+        Eigen::MatrixXd jacobian_transpose_pinv, N, N_pinv;
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
         //construct external repulsion force
-        r = position - C; // compute vector between EE and sphere
-		//ToDo: Exception Handling for when r is very small or 0
-        double penetration_depth = std::max(0.0, R-r.norm());
+		//we check two points
+	    Eigen::Vector3d r_EE = position - C; //End effector
+		Eigen::Vector3d r_joint7 = joint7_position - C; //Franka coordinate system joint 7
         Eigen::Vector3d w = (jacobian*dq).head(3); //linear EE velocity
-        //v = v.dot(r)/r.squaredNorm() * r; //projected velocity
-        isInSphere = r.norm() < R;
-        Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
-        double r_eq = 0.6 * R;
 
-        /** update repulsive stiffnesses and damping **/
-        //do not repulse in free float
-		//ToDo: find good solution with repulsion K regarding equilibrium radius and callback logic
-        // repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
+	    /** update repulsive stiffnesses and damping **/
+	    //v = v.dot(r)/r.squaredNorm() * r; //projected velocity
+	    //Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
+	    // repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
 
-        if(isInSphere){
-            I_error *= 0; //clear Integrator
-            F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/(r.norm()+0.01) - repulsion_D * w) +
-					0.9 * F_repulsion.head(3); //assume Theta = Lambda
-        }
-        else{ F_repulsion = 0.3 * 0.0 * F_repulsion + 0.7 * F_repulsion; } //command smooth slowdown
+	    if((r_EE.norm() < R) || (r_joint7.norm() < R )){
+		    r = (r_EE.norm() < r_joint7.norm()) ? r_EE : r_joint7; //take nearest checkpoint for repulsive force
+		    double penetration_depth = std::max(0.0, R-r.norm());
+		    I_error *= 0.0; //clear Integrator slowly
+		    F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/(r.norm()+0.001) - repulsion_D * w) +
+		                          0.9 * F_repulsion.head(3); //assume Theta = Lambda and smooth with EMA
+	    }
+	    else{ F_repulsion = 0.3 * 0.0 * F_repulsion + 0.7 * F_repulsion; } //command smooth slowdown
+		if (r_EE.norm() < r_joint7.norm()){tau_repulsion = jacobian.transpose() * F_repulsion; }
+		else { tau_repulsion = jacobian_j7.transpose() * F_repulsion; }
 
         // nullspace PD control with damping ratio = 1
-        tau_nullspace << (Eigen::MatrixXd::Identity(7, 7) -
-                          jacobian.transpose() * jacobian_transpose_pinv) *
-                         (nullspace_stiffness_ * config_control * (q_d_nullspace_ - q) - //if config_control = true we control the whole robot configuration
+		/**
+		N = Eigen::MatrixXd::Identity(7, 7) - jacobian.transpose() * jacobian_transpose_pinv;
+	    pseudoInverse(N, N_pinv);
+
+        tau_nullspace << N *(nullspace_stiffness_ * config_control * (q_d_nullspace_ - q) - //if config_control = true we control the whole robot configuration
                           (2.0 * sqrt(nullspace_stiffness_)) * dq);  // if config control ) false we don't care about the joint positions
 
+		**/
+        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_potential) + jacobian.transpose() * Sf * F_cmd;
+        tau_d << tau_impedance + tau_repulsion + coriolis; //add nullspace and coriolis components to desired torque
 
-        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;
-        tau_d << tau_impedance + tau_nullspace + coriolis; //add nullspace and coriolis components to desired torque
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities
         for (size_t i = 0; i < 7; ++i) {
             joint_handles_[i].setCommand(tau_d(i));
