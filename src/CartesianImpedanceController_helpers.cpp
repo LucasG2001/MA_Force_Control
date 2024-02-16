@@ -21,6 +21,13 @@ namespace force_control {
 
     }
 
+    int sgn(double number){ //returns sign of number
+        if(number >= 0){
+            return 1;
+        }
+        return -1;
+    }
+
     void CartesianImpedanceController::log_values_to_file(bool log){
         Eigen::Matrix<double, 6, 1> integrator_weights;
         if(log){
@@ -77,8 +84,18 @@ namespace force_control {
 
             debug.open("/home/viktor/Documents/BA/log/debug.txt", std::ios::app);
             if( debug.is_open() && count % 10 == 0){
-                debug << count << "\n" << error_goal << " , \n" << error_goal_directed << "\n";
-                debug << "---------------------------------------------------- \n";
+                Eigen::VectorXd helper (7);
+                for(int i = 0; i < 7; ++i){
+                    helper(i) = sgn(tau_impedance(i));
+                }
+                Eigen::VectorXd K_vector (6);
+                for(int i = 0; i < 6; ++i){
+                    K_vector(i) = K(i,i);
+                }
+                Eigen::VectorXd force_threshold(6);
+                force_threshold << jacobian_transpose_pinv * (coulomb_friction.cwiseProduct(helper) + offset_friction);
+
+                debug << count << "\n" << force_threshold.cwiseQuotient(K_vector) << "\n------------------------\n";
             }
 
             count += 1;
@@ -99,12 +116,6 @@ namespace force_control {
         return tau_d_saturated;
     }
 
-    int sgn(double number){ //returns sign of number
-        if(number >= 0){
-            return 1;
-        }
-        return -1;
-    }
 
 
    //Loads friction parameters into vector friction_parameters from file specified in filePath

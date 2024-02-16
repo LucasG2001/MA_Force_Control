@@ -95,6 +95,7 @@ namespace force_control {
         Eigen::Matrix<double, 6,6> cartesian_damping_target_; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_inertia_target_; //impedance damping term
         Eigen::Matrix<double, 6,7> jacobian; //jacobian matrix of robot
+        Eigen::MatrixXd jacobian_transpose_pinv;
         Eigen::Matrix<double, 7,1> coriolis; //coriolis torques of robot
         Eigen::Matrix<double, 7, 7> M; //Mass-matrix
         Eigen::Matrix<double, 7,1> pos_measured = Eigen::MatrixXd::Zero(7,1); //Measured position for logging

@@ -336,8 +336,9 @@ namespace force_control{
         // allocate variables
         Eigen::VectorXd tau_task(7), tau_nullspace(7);
         // pseudoinverse for nullspace handling
-        Eigen::MatrixXd jacobian_transpose_pinv;
+        
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
+
 
         //construct external repulsion force
         /*
