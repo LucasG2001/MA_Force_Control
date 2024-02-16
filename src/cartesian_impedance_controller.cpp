@@ -274,6 +274,8 @@ namespace force_control{
         Eigen::Vector3d position(transform.translation());
         Eigen::Quaterniond orientation(transform.rotation());
 
+        // std::cout << transform.matrix() << "transform --------------\n" << position << "position-----------\n" << orientation.x() << "orientation-----------\n";
+
         Lambda = (jacobian * M.inverse() * jacobian.transpose()).inverse();
         T = Lambda; // let robot behave with it's own physical inertia (How can we change the physical inertia and what does it mean?)
 
@@ -289,19 +291,19 @@ namespace force_control{
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
 
-        error_goal_met = (error_goal - error.cwiseAbs()).array() > 0; //elementwise true, if error is met
+        error_goal_met = error_goal.array() > error.cwiseAbs().array(); //elementwise true, if error is met
 
-        if (!(error_goal_met(2) && error_goal_met(3) && error_goal_met(4))){
+        if (!(error_goal_met(1) && error_goal_met(2) && error_goal_met(3))){
+            error_goal_met(1) = false;
             error_goal_met(2) = false;
             error_goal_met(3) = false;
+        }
+        if(!(error_goal_met(0) && error_goal_met(2) && error_goal_met(4))){
+            error_goal_met(0) = false;
             error_goal_met(4) = false;
         }
-        if(!(error_goal_met(1) && error_goal_met(3) && error_goal_met(5))){
-            error_goal_met(1) = false;
+        if(!(error_goal_met(0) && error_goal_met(1) && error_goal_met(5))){
             error_goal_met(5) = false;
-        }
-        if(!(error_goal_met(1) && error_goal_met(2) && error_goal_met(6))){
-            error_goal_met(6) = false;
         }
 
         Eigen::Matrix<double, 6, 1> integrator_weights;
