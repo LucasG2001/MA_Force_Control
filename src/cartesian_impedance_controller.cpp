@@ -163,6 +163,8 @@ namespace force_control{
         std::array<double, 42> jacobian_array =
                 model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
         // convert to eigen
+        std::array<double, 49> mass = model_handle_->getMass();
+        M_old = Eigen::Map<Eigen::Matrix<double, 7, 7>>(mass.data());
         Eigen::Map<Eigen::Matrix<double, 7, 1>> q_initial(initial_state.q.data());
         Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
         F_T_EE = initial_state.F_T_EE;
@@ -181,7 +183,7 @@ namespace force_control{
         K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
         K.bottomRightCorner(3, 3) << 130, 0, 0, 0, 130, 0, 0, 0, 10;
         D.topLeftCorner(3, 3) = 35 * Eigen::Matrix3d::Identity();
-        D.bottomRightCorner(3, 3) << 20, 0, 0, 0, 20, 0, 0, 0, 6;
+        D.bottomRightCorner(3, 3) << 25, 0, 0, 0, 25, 0, 0, 0, 6;
         cartesian_stiffness_target_ = K;
         cartesian_damping_target_ = D;
         max_I << 30.0, 30.0, 30.0, 50.0, 50.0, 2.0; // integrator saturation
@@ -203,20 +205,20 @@ namespace force_control{
 
         //loggers
 
-        // std::ofstream F;
-        // F.open("/home/viktor/Documents/BA/log/F.txt");
-        // F << "time Fref F_cmd Fx Fy Fz Mx My Mz F_imp_x F_imp_y F_imp_z F_imp_Mx F_imp_My F_imp_Mz\n";
-        // F.close();
+        std::ofstream F;
+        F.open("/home/viktor/Documents/BA/log/F.txt");
+        F << "time Fx Fy Fz Mx My Mz \n";
+        F.close();
 
         std::ofstream tau;
         tau.open("/home/viktor/Documents/BA/log/tau.txt");
         tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 g0 g1 g2 g3 g4 g5 g6 \n";
         tau.close();
 
-        // std::ofstream dq;
-        // dq.open("/home/viktor/Documents/BA/log/dq.txt");
-        // dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
-        // dq.close();
+        std::ofstream dq;
+        dq.open("/home/viktor/Documents/BA/log/dq.txt");
+        dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
+        dq.close();
 
         // std::ofstream coriolis_of;
         // coriolis_of.open("/home/viktor/Documents/BA/log/coriolis_of.txt");
@@ -225,7 +227,7 @@ namespace force_control{
 
         std::ofstream friction_of;
         friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt");
-        friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 \n";
+        friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 e0 e1 e2 e3 e4 e5 e6 \n";
         friction_of.close();
 
         std::ofstream threshold;
@@ -240,7 +242,7 @@ namespace force_control{
 
         std::ofstream pose_error;
         pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
-        pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd\n";
+        pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd xt yt zt rxt ryt rzt \n";
         pose_error.close();
 
         std::cout << error_goal_separate.toDenseMatrix() << "\n";
@@ -267,6 +269,7 @@ namespace force_control{
         q = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.q.data());
         dq = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.dq.data());
         dq_d = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.dq_d.data());
+        tau_external = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.tau_ext_hat_filtered.data());
         M = Eigen::Map<Eigen::Matrix<double, 7, 7>>(mass.data());
         tau_J_d = Eigen::Map<Eigen::Matrix<double, 7, 1>>(  // NOLINT (readability-identifier-naming)
                 robot_state.tau_J_d.data());
@@ -289,7 +292,7 @@ namespace force_control{
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
 
-        error_goal_met = (error_goal - error.cwiseAbs()).array() > 0; //elementwise true, if error is met
+        error_goal_met = (error_goal.array() > error.array());//elementwise true, if error is met
 
         Eigen::Matrix<double, 6, 1> integrator_weights;
         integrator_weights << 75.0, 75.0, 75.0, 75.0, 75.0, 4.0; //give different DoF different integrator constants
@@ -322,7 +325,6 @@ namespace force_control{
         // allocate variables
         Eigen::VectorXd tau_task(7), tau_nullspace(7);
         // pseudoinverse for nullspace handling
-        Eigen::MatrixXd jacobian_transpose_pinv;
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
 
         //construct external repulsion force
@@ -415,7 +417,7 @@ namespace force_control{
 
         }
         else{
-            tau_d << tau_impedance + tau_nullspace + coriolis + tau_friction - tau_error; //add nullspace, coriolis and friction components to desired torque
+            tau_d << tau_impedance + tau_nullspace + coriolis/* + tau_friction - tau_error*/; //add nullspace, coriolis and friction components to desired torque
         }
 
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
@@ -424,6 +426,7 @@ namespace force_control{
             joint_handles_[i].setCommand(tau_d(i));
         }//Send command to robot
 
+        state_observer();
         update_stiffness_and_references();
 
         //logging

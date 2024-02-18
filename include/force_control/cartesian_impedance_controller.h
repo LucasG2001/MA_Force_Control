@@ -62,6 +62,7 @@ namespace force_control {
         void log_values_to_file(bool do_logging);
         void load_friction_parameters(const std::string& filePath);
         void calculate_tau_friction();
+        void state_observer();
 
     private:
         // Saturation
@@ -94,6 +95,7 @@ namespace force_control {
         Eigen::Matrix<double, 6,6> cartesian_damping_target_; //impedance damping term
         Eigen::Matrix<double, 6,6> cartesian_inertia_target_; //impedance damping term
         Eigen::Matrix<double, 6,7> jacobian; //jacobian matrix of robot
+        Eigen::MatrixXd jacobian_transpose_pinv;
         Eigen::Matrix<double, 7,1> coriolis; //coriolis torques of robot
         Eigen::Matrix<double, 7, 7> M; //Mass-matrix
         Eigen::Matrix<double, 7,1> pos_measured = Eigen::MatrixXd::Zero(7,1); //Measured position for logging
@@ -107,8 +109,11 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> tau_impedance = Eigen::MatrixXd::Zero(7,1); //torque for every joint from Jacobi * F_cmd
         Eigen::Matrix<double, 7, 1> tau_impedance_filtered = Eigen::MatrixXd::Zero(7,1); //filtered impedance torque for friction compensation
         Eigen::Matrix<double, 7, 1> tau_friction = Eigen::MatrixXd::Zero(7,1); //torque compensating friction
+        const Eigen::VectorXd sigmoid_param = (Eigen::VectorXd(7) << -2400, -200, -800, -1200, -1600, -1600, -200).finished(); 
+        Eigen::Matrix<double, 6, 1> F_friction_keep = Eigen::MatrixXd::Zero(6,1);
 
         const Eigen::VectorXd error_goal =  (Eigen::VectorXd(6) << .001, .001, .001, .001, .001, .01).finished(); //Sufficient good errors needed for friction compensation
+        Eigen::Matrix<double, 6, 1> error_threshold; 
         Eigen::Matrix<double, 7, 1> tau_threshold = Eigen::MatrixXd::Zero(7,1); //Minimum tau_impedance, after which friction compensation should turn on
         const Eigen::DiagonalMatrix<double, 6> error_goal_separate = error_goal.asDiagonal(); //Diagonal matrix with every error_goal in a separate column
         Eigen::Matrix<double, 7, 6> tau_threshold_separate = Eigen::MatrixXd::Zero(7,6); //separated tau_thresholds (every error with own column)
@@ -124,6 +129,14 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> qua_b;//component b of quadratic friction model (a + b*dq + c*dq²)
         Eigen::Matrix<double, 7, 1> qua_c;//component c of quadratic friction model (a + b*dq + c*dq²)
         Eigen::MatrixXi friction_state = Eigen::MatrixXi::Zero(7,1); //current friction state (0 == off, 1 == static, 2 == quadratic, 3 == linear)
+
+        //state observer stuff
+
+        Eigen::Matrix<double, 7, 1> integral_observer = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> r = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 7> M_old = Eigen::MatrixXd::Zero(7,7);
+        const Eigen::Matrix<double, 7, 7> K_0 = (Eigen::VectorXd(7) << 10, 10, 10, 10, 10, 10, 10).finished().asDiagonal();
+        Eigen::Matrix<double, 7, 1> tau_external = Eigen::MatrixXd::Zero(7,1);
 
 
         //FLAGS

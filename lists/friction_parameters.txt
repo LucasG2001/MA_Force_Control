@@ -21,7 +21,7 @@
 1.180625
 1.139375
 1.08
-0.805
+0.54
 0.439875
 #component b of linear friction model (a*sgn(dq) + b*dq + d)
 1.18 
@@ -31,27 +31,27 @@
 0.935 
 0.54 
 0.45
-#component a of quadratic friction model (a*sgn(dq) + b*dq + c*dq²+d)
-0.040625
-0.70125
-0.060625
-0.129375
+#component a of quadratic friction model (a + (b - a) * exp(-abs(dq/c)))*sgn(dq) + a_lin * dq
+0
+0
+0
+0
 1.6
--0.105
-0.677875
-#component b of quadratic friction model (a*sgn(dq) + b*dq + c*dq²+d)
+0
+0.43
+#component b of quadratic friction model (a + (b - a) * exp(-abs(dq/c)))*sgn(dq) + a_lin * dq
 0 
 0 
 0 
 0 
 -4.035 
 0 
--3.22
-#component c of quadratic friction model (a*sgn(dq) + b*dq + c*dq²+d)
+0.67
+#component c of quadratic friction model (a + (b - a) * exp(-abs(dq/c)))*sgn(dq) + a_lin * dq
 0 
 0 
 0 
 0 
 12.425 
 0 
-12.24
+0.049
