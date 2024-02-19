@@ -230,6 +230,10 @@ namespace force_control{
         friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 e0 e1 e2 e3 e4 e5 e6 \n";
         friction_of.close();
 
+        std::ofstream optimization;
+        friction_of.open("/home/viktor/Documents/BA/log/optimization.txt");
+        friction_of << "time f0 f1 f2 f3 f4 f5 f6 g0 g1 g2 g3 g4 g5 g6 dq0 dq1 dq2 dq3 dq4 dq5 dq6 fr0 fr1 fr2 fr3 fr4 fr5 fr6 \n";
+
         std::ofstream threshold;
         friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
         friction_of << "time t0 t1 t2 t3 t4 t5 t6 \n";
@@ -417,7 +421,8 @@ namespace force_control{
 
         }
         else{
-            tau_d << tau_impedance + tau_nullspace + coriolis/* + tau_friction - tau_error*/; //add nullspace, coriolis and friction components to desired torque
+            state_observer();
+            tau_d << tau_impedance + tau_nullspace + coriolis -r/* + tau_friction - tau_error*/; //add nullspace, coriolis and friction components to desired torque
         }
 
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
@@ -426,7 +431,8 @@ namespace force_control{
             joint_handles_[i].setCommand(tau_d(i));
         }//Send command to robot
 
-        state_observer();
+        
+        state_tuner();
         update_stiffness_and_references();
 
         //logging

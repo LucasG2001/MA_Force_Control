@@ -24,7 +24,7 @@ namespace force_control {
     void CartesianImpedanceController::log_values_to_file(bool log){
         Eigen::Matrix<double, 6, 1> integrator_weights;
         if(log){
-            std::ofstream /*F_log, F_error,*/ pose_error , friction_of,  tau_log /*, dq_log , coriolis_of, threshold*/;
+            std::ofstream /*F_log, F_error,*/ pose_error , friction_of,  tau_log, optimization /*, dq_log , coriolis_of, threshold*/;
 
             tau_log.open("/home/viktor/Documents/BA/log/tau.txt", std::ios::app);
             if (tau_log.is_open()){
@@ -40,9 +40,15 @@ namespace force_control {
 
             friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt", std::ios::app);
             if (friction_of.is_open()){
-            friction_of << count << "," << tau_friction.transpose() << " , " << -r.transpose() << " , " << tau_external.transpose() << "\n";
+            friction_of << count << "," << tau_friction.transpose() << " , " << -r.transpose() << " , " << friction_optimized.transpose() << "\n";
             }
             friction_of.close();
+
+            optimization.open("/home/viktor/Documents/BA/log/optimization.txt", std::ios::app);
+            if (optimization.is_open()){
+            optimization << count << "," << f.transpose() << " , " << " , " << g.transpose() << " ,  " << dq_filtered.transpose() << " , " << -r.transpose() << "\n";
+            }
+            optimization.close();
 
             // threshold.open("/home/viktor/Documents/BA/log/threshold.txt", std::ios::app);
             // if (threshold.is_open()){
@@ -143,6 +149,7 @@ namespace force_control {
         qua_a = friction_parameters.segment(28,7);
         qua_b = friction_parameters.segment(35,7);
         qua_c = friction_parameters.segment(42,7);
+        g = coulomb_friction;
         file.close(); // Close the file after reading
         static_friction_minus = offset_friction - coulomb_friction;
 
@@ -225,6 +232,16 @@ namespace force_control {
         integral_observer += (tau_d + dM*dq - coriolis+r)*0.001;
         r = K_0 * (M*dq - integral_observer);
         M_old = M;
+    }
+
+    void CartesianImpedanceController::state_tuner(){
+        g(6) = (qua_a(6) + (qua_b(6) - qua_a(6)) * exp(-1 * std::abs(dq_filtered(6)/qua_c(6)))) * sgn(dq_filtered(6)) + lin_a(6) * dq_filtered(6);
+        f = lin_b.cwiseProduct(dq_filtered) + offset_friction;
+        //sigma_0 = (r - f - dq_filtered).array() / (z.array() - dq_filtered.array().abs() / g.array() * z.array());
+        dz = dq_filtered.array() - dq.array().abs() / g.array() * sigma_0.array() * z.array();
+        z = 0.001 * dz + z;
+        friction_optimized = sigma_0.array() * z.array() + sigma_1.array() * dz.array() + f.array();
+        friction_optimized = friction_optimized.array().abs() * tau_impedance_filtered.array().unaryExpr([](double x){return static_cast<double>(sgn(x));});
     }
 
 }

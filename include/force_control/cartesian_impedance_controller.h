@@ -63,6 +63,7 @@ namespace force_control {
         void load_friction_parameters(const std::string& filePath);
         void calculate_tau_friction();
         void state_observer();
+        void state_tuner();
 
     private:
         // Saturation
@@ -138,6 +139,15 @@ namespace force_control {
         const Eigen::Matrix<double, 7, 7> K_0 = (Eigen::VectorXd(7) << 10, 10, 10, 10, 10, 10, 10).finished().asDiagonal();
         Eigen::Matrix<double, 7, 1> tau_external = Eigen::MatrixXd::Zero(7,1);
 
+        //state tuner stuff
+
+        Eigen::Matrix<double, 7, 1> dz = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> z = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> g = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> f = Eigen::MatrixXd::Zero(7,1);
+        const Eigen::Matrix<double, 7, 1> sigma_0 = (Eigen::VectorXd(7) << 4.84, 232, 5.2, -4.94, 169.5, 126.16, 1).finished();
+        const Eigen::Matrix<double, 7, 1> sigma_1 = (Eigen::VectorXd(7) << 4.84, 232, 5.2, -4.94, 169.5, 126.16, 1).finished();
+        Eigen::Matrix<double, 7, 1> friction_optimized = Eigen::MatrixXd::Zero(7,1);
 
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
