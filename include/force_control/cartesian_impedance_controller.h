@@ -102,6 +102,7 @@ namespace force_control {
         Eigen::Matrix<double, 7,1> pos_measured = Eigen::MatrixXd::Zero(7,1); //Measured position for logging
         Eigen::Matrix<double, 7,1> tau_d = Eigen::MatrixXd::Zero(7,1); //commanded torque
         Eigen::Matrix<double, 7, 1> tau_J_d = Eigen::MatrixXd::Zero(7,1); //measured torque
+        Eigen::Matrix<double, 7, 1> tau_nullspace = Eigen::MatrixXd::Zero(7,1); //nullspace torque
         Eigen::Matrix<double, 7, 1> dq = Eigen::MatrixXd::Zero(7,1); //measured rotational speed
         Eigen::Matrix<double, 7, 1> dq_filtered = Eigen::MatrixXd::Zero(7,1); //rotational speed filtered for friction compensation
         Eigen::Matrix<double, 7, 1> dq_d = Eigen::MatrixXd::Zero(7,1); //desired rotational speed
@@ -145,9 +146,16 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> z = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> g = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> f = Eigen::MatrixXd::Zero(7,1);
-        const Eigen::Matrix<double, 7, 1> sigma_0 = (Eigen::VectorXd(7) << 4.84, 232, 5.2, -4.94, 169.5, 126.16, 1).finished();
-        const Eigen::Matrix<double, 7, 1> sigma_1 = (Eigen::VectorXd(7) << 4.84, 232, 5.2, -4.94, 169.5, 126.16, 1).finished();
+        const Eigen::Matrix<double, 7, 1> sigma_0 = (Eigen::VectorXd(7) << 80.8, 59.18, 42.16, 83.64, 32.8, 21.83, 0.53).finished();
+        const Eigen::Matrix<double, 7, 1> sigma_1 = (Eigen::VectorXd(7) << 0.0012728, 0.001, 0.001481, 0.00138, 0.0016, 0.000755, 0.000678).finished();
         Eigen::Matrix<double, 7, 1> friction_optimized = Eigen::MatrixXd::Zero(7,1);
+        double x_start = 0;
+        double x_integral = 0;
+        double z_guess = 0;
+        double sigma_0_guess = 0;
+        Eigen::Matrix<double, 7, 1> dq_old = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> sigma_1_guess = Eigen::MatrixXd::Zero(7,1);
+
 
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
@@ -158,17 +166,17 @@ namespace force_control {
         int timestamp = 0; //helper for linear increase of test torque
         // end FLAGS
         double filter_params_{0.005};
-        double nullspace_stiffness_{0.001};
-        double nullspace_stiffness_target_{0.001};
+        double nullspace_stiffness_{1};
+        double nullspace_stiffness_target_{1};
         const double delta_tau_max_{1.0}; //max. torque-rate to ensure continuity
-        Eigen::Matrix<double, 7, 1> q_d_nullspace_;
+        Eigen::Matrix<double, 7, 1> q_d_nullspace_; //neutral pose;
         Eigen::Vector3d position_d_;
         Eigen::Quaterniond orientation_d_;
         std::mutex position_and_orientation_d_target_mutex_;
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
         unsigned int count = 0; //logging
-        franka_hw::TriggerRate log_rate_{50}; //logging
+        franka_hw::TriggerRate log_rate_{100}; //logging
         const double dt = 0.001;
 
         //repulsion sphere around right hand;

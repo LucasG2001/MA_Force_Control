@@ -24,13 +24,26 @@ namespace force_control {
     void CartesianImpedanceController::log_values_to_file(bool log){
         Eigen::Matrix<double, 6, 1> integrator_weights;
         if(log){
-            std::ofstream /*F_log, F_error,*/ pose_error , friction_of,  tau_log, optimization /*, dq_log , coriolis_of, threshold*/;
+            std::ofstream testing/*, F_log, F_error*/, pose_error, friction_of,  tau_log, optimization  , mass/*, dq_log , coriolis_of, threshold*/;
+
+            testing.open("/home/viktor/Documents/BA/log/testing.txt", std::ios::app);
+            if (testing.is_open()){
+                testing << count << " , " << joint << " , " << sigma_0_guess << " , " << q(joint) << " , " << tau_d(joint) << " , " << z_guess << " , " << x_integral << "\n";
+            }
+            testing.close();
 
             tau_log.open("/home/viktor/Documents/BA/log/tau.txt", std::ios::app);
             if (tau_log.is_open()){
-            tau_log << count << "," << tau_impedance_filtered.transpose() << " , " << gravity.transpose() << "\n";
+            tau_log << count << "," << tau_d.transpose() << "\n";
             }
-            tau_log.close();   
+            tau_log.close();  
+
+            mass.open("/home/viktor/Documents/BA/log/mass.txt", std::ios::app);
+            if (mass.is_open()){
+                mass << M << "\n" << "\n";
+            }
+            mass.close();
+
 
             // coriolis_of.open("/home/viktor/Documents/BA/log/coriolis_of.txt", std::ios::app);
             // if (coriolis_of.is_open()){
@@ -40,13 +53,13 @@ namespace force_control {
 
             friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt", std::ios::app);
             if (friction_of.is_open()){
-            friction_of << count << "," << tau_friction.transpose() << " , " << -r.transpose() << " , " << friction_optimized.transpose() << "\n";
+            friction_of << count << "," << tau_nullspace.transpose() << " , " << -r.transpose() << " , " << tau_friction.transpose() << "\n";
             }
             friction_of.close();
 
             optimization.open("/home/viktor/Documents/BA/log/optimization.txt", std::ios::app);
             if (optimization.is_open()){
-            optimization << count << "," << f.transpose() << " , " << " , " << g.transpose() << " ,  " << dq_filtered.transpose() << " , " << -r.transpose() << "\n";
+            optimization << count << "," << dz.transpose() << " , " << " , " << z.transpose() << " ,  " << dq.transpose() << " , " << q.transpose() << "\n";
             }
             optimization.close();
 
@@ -81,10 +94,11 @@ namespace force_control {
             // }
             // dq_log.close();
 
-            // if( count % 10 == 0){
-            //     std::cout << tau_threshold_separate << " , " << error_goal_met << "\n";
-            //     std::cout << "---------------------------------------------------- \n";
-            // }
+            if( count % 100 == 0){
+                std::cout << (Eigen::MatrixXd::Identity(7, 7) -
+                          jacobian.transpose() * jacobian_transpose_pinv) << "\n";
+                std::cout << "---------------------------------------------------- \n";
+            }
 
             count += 1;
         }
@@ -191,39 +205,47 @@ namespace force_control {
             int sign_dq = sgn(dq_filtered(i));  
             double dq_filtered_abs = std::abs(dq_filtered(i));
 
-            if (dq_filtered_abs < 0.005 || i == 1){
-                //tau_friction(i) = 2 * coulomb_friction(i) / (1 + std::exp(sigmoid_param(i)*std::abs(dq_filtered(i))* sign_tau)) + static_friction_minus(i); //sigmoid function for region around 0
-                tau_friction(i) = sign_tau * coulomb_friction(i) + offset_friction(i);
-                friction_state(i) = 1;
-            }//static friction, friction is constant for joint 1 at every speed
+            // if (dq_filtered_abs < 0.005 || i == 1){
+            //     //tau_friction(i) = 2 * coulomb_friction(i) / (1 + std::exp(sigmoid_param(i)*std::abs(dq_filtered(i))* sign_tau)) + static_friction_minus(i); //sigmoid function for region around 0
+            //     tau_friction(i) = sign_tau * coulomb_friction(i) + offset_friction(i);
+            //     friction_state(i) = 1;
+            // }//static friction, friction is constant for joint 1 at every speed
 
-            else if( i == 6){
-                tau_friction(i) = (qua_a(6) + (qua_b(6) - qua_a(6)) * exp(-1 * std::abs(dq_filtered(6)/qua_c(6)))) * sign_dq + lin_a(6) * dq_filtered(i);
-            }
+            // else if( i == 6){
+            //     tau_friction(i) = (qua_a(6) + (qua_b(6) - qua_a(6)) * exp(-1 * std::abs(dq_filtered(6)/qua_c(6)))) * sign_dq + lin_a(6) * dq_filtered(i);
+            // }
 
-            else if (dq_filtered_abs >= friction_region_change(i)){
-                tau_friction(i) = lin_a(i)*sign_dq + lin_b(i)*dq_filtered(i) + offset_friction(i);
-                friction_state(i) = 3;
-            }
-            else{
-                tau_friction(i) = qua_a(i)*sign_dq + qua_b(i)*dq_filtered(i) + qua_c(i) * dq_filtered(i)*dq_filtered(i) *sign_dq + offset_friction(i);
-                friction_state(i) = 2;
-            }
+            // else if (dq_filtered_abs >= friction_region_change(i)){
+            //     tau_friction(i) = lin_a(i)*sign_dq + lin_b(i)*dq_filtered(i) + offset_friction(i);
+            //     friction_state(i) = 3;
+            // }
+            // else{
+            //     tau_friction(i) = qua_a(i)*sign_dq + qua_b(i)*dq_filtered(i) + qua_c(i) * dq_filtered(i)*dq_filtered(i) *sign_dq + offset_friction(i);
+            //     friction_state(i) = 2;
+            // }
 
         }
 
+        state_tuner();
+        tau_friction = friction_optimized;
+        // Eigen::VectorXd tau_friction_nullspace (7);
+        // tau_friction_nullspace = (Eigen::MatrixXd::Identity(7, 7) -
+        //                   jacobian.transpose() * jacobian_transpose_pinv) * tau_friction;
+        // tau_friction -= tau_friction_nullspace;
+
+
         // Eigen::VectorXd F_friction_theory (6), K_vector(6);
-        // F_friction_theory = jacobian_transpose_pinv * tau_friction;
+        // F_friction_theory = jacobian_transpose_pinv * (-r);
         // K_vector << K.diagonal();
         // error_threshold << F_friction_theory.cwiseQuotient(K_vector);
         // for(int i = 0; i < 6; ++i){
-        //     F_friction_keep(i) = F_friction_theory(i);
-        //     //F_friction_keep(i) = (std::abs(error(i)) > error_goal(i) && std::abs(error(i)) < std::abs(error_threshold(i))) * F_friction_theory(i);
+        //     //F_friction_keep(i) = F_friction_theory(i);
+        //     F_friction_keep(i) = (std::abs(error(i)) > error_goal(i) /* && std::abs(error(i)) < std::abs(error_threshold(i))*/) * F_friction_theory(i);
         // }
         // tau_friction = jacobian.transpose() * F_friction_keep;
-        for(int i = 0; i < 7; ++i){
-            tau_friction(i) = sgn(tau_impedance_filtered(i)) * std::abs(tau_friction(i));
-        }
+        // for(int i = 0; i < 7; ++i){
+        //     tau_friction(i) = sgn(tau_impedance_filtered(i)) * std::abs(tau_friction(i));
+        // }
     }
 
 
@@ -231,6 +253,7 @@ namespace force_control {
         Eigen::Matrix<double, 7, 7> dM = (M - M_old).array()/0.001; 
         integral_observer += (tau_d + dM*dq - coriolis+r)*0.001;
         r = K_0 * (M*dq - integral_observer);
+        r[6] *= 0;
         M_old = M;
     }
 
@@ -238,10 +261,10 @@ namespace force_control {
         g(6) = (qua_a(6) + (qua_b(6) - qua_a(6)) * exp(-1 * std::abs(dq_filtered(6)/qua_c(6)))) * sgn(dq_filtered(6)) + lin_a(6) * dq_filtered(6);
         f = lin_b.cwiseProduct(dq_filtered) + offset_friction;
         //sigma_0 = (r - f - dq_filtered).array() / (z.array() - dq_filtered.array().abs() / g.array() * z.array());
-        dz = dq_filtered.array() - dq.array().abs() / g.array() * sigma_0.array() * z.array();
+        dz = dq_filtered.array() - dq_filtered.array().abs() / g.array() * sigma_0.array() * z.array();
         z = 0.001 * dz + z;
         friction_optimized = sigma_0.array() * z.array() + sigma_1.array() * dz.array() + f.array();
-        friction_optimized = friction_optimized.array().abs() * tau_impedance_filtered.array().unaryExpr([](double x){return static_cast<double>(sgn(x));});
+        // friction_optimized = friction_optimized.array().abs() * tau_impedance_filtered.array().sign();
     }
 
 }

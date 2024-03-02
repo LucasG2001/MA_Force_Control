@@ -175,11 +175,9 @@ namespace force_control{
         orientation_d_ = Eigen::Quaterniond(initial_transform.rotation());
         position_d_target_ = initial_transform.translation();
         orientation_d_target_ = Eigen::Quaterniond(initial_transform.rotation());
-
+        q_d_nullspace_ = q_initial; //neutral pose
         // set nullspace equilibrium configuration to initial q
         //TODO: set controller paramter callback for dynamic reconfiguration
-        q_d_nullspace_ = q_initial;
-        nullspace_stiffness_target_ = 0.0001;
         K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
         K.bottomRightCorner(3, 3) << 130, 0, 0, 0, 130, 0, 0, 0, 10;
         D.topLeftCorner(3, 3) = 35 * Eigen::Matrix3d::Identity();
@@ -212,7 +210,7 @@ namespace force_control{
 
         std::ofstream tau;
         tau.open("/home/viktor/Documents/BA/log/tau.txt");
-        tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 g0 g1 g2 g3 g4 g5 g6 \n";
+        tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 \n";
         tau.close();
 
         std::ofstream dq;
@@ -230,9 +228,14 @@ namespace force_control{
         friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 e0 e1 e2 e3 e4 e5 e6 \n";
         friction_of.close();
 
+        std::ofstream testing;
+        testing.open("/home/viktor/Documents/BA/log/testing.txt");
+        testing << "time joint guess q tau z x_int \n";
+        testing.close();
+
         std::ofstream optimization;
         friction_of.open("/home/viktor/Documents/BA/log/optimization.txt");
-        friction_of << "time f0 f1 f2 f3 f4 f5 f6 g0 g1 g2 g3 g4 g5 g6 dq0 dq1 dq2 dq3 dq4 dq5 dq6 fr0 fr1 fr2 fr3 fr4 fr5 fr6 \n";
+        friction_of << "time f0 f1 f2 f3 f4 f5 f6 g0 g1 g2 g3 g4 g5 g6 dq0 dq1 dq2 dq3 dq4 dq5 dq6 q0 q1 q2 q3 q4 q5 q6 \n";
 
         std::ofstream threshold;
         friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
@@ -327,7 +330,7 @@ namespace force_control{
         //ROS_INFO_STREAM("-------------------------------------------------------");
 
         // allocate variables
-        Eigen::VectorXd tau_task(7), tau_nullspace(7);
+        Eigen::VectorXd tau_task(7);
         // pseudoinverse for nullspace handling
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
 
@@ -381,48 +384,50 @@ namespace force_control{
         tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;      
         //use for testing. test and joint are given over from demo.cpp to select whether testing is active and what joint is actuated.
         //All other joint torques are set to zero. Goal is to follow the wanted velocity dq_usr
-        if(control_mode == 1){
-            timestamp = 0;
-        }
+      
 
         if (test){ //Only set torques for the joint you want to test
-            double dq_usr = (-1)*0.25; //desired rotational speed
-            double P = coulomb_friction(joint)/.005*.25; //P-value of P-controller
-            double dq_error; //error between dq_usr and dq
-            double alpha_ = .001; //gain for exponential filter
-            // double k_D = .33 * .5541;  
-            // double dq_error_old = 0;
-            // double dq_integral = 0;
-            // double k_I = .5 * .5541;
+
+            // if(timestamp == 0){ x_start = q(joint);}
+
+            // if(timestamp > 0){
+            //     for (int i = 0; i < 7; i++){
+            //         if (i != joint){
+            //             tau_d(i) =  tau_nullspace(i) + coriolis(i);
+            //         }//all components that are not tested are set to zero
+            //     }
+            //     //torque should reach f_coulomb after 20 seconds
+            //     x_integral += q(joint) * 0.001;
+            //     z_guess = q(joint) - x_start + coulomb_friction(joint) / 40 / coulomb_friction(joint) * (q(joint) * timestamp/1000 + x_integral);
+            //     sigma_0_guess = tau_d(joint) / z_guess;
+            //     tau_d(joint) = coulomb_friction(joint)/20000 * timestamp + tau_nullspace(joint) + coriolis(joint);
+
+            // }
+
+            // ++timestamp;
+
+            //Second testing, comment out all above or all below, don't run at same time
 
             for (int i = 0; i < 7; i++){
                 if (i != joint){
-                    tau_d(i) =  0 + tau_nullspace(i) + coriolis(i);
+                    tau_d(i) =  tau_nullspace(i) + coriolis(i);
                 }//all components that are not tested are set to zero
             }
-        
-            if(std::abs(dq(joint)) < 0.005){
-                tau_d(joint) = (-1)*timestamp * 0.0001 /* + tau_nullspace(joint) + coriolis(joint) */;
-                timestamp++;
-                // dq_error_old = dq_usr - dq(joint);
-            }//Torque goes up linearly until static friction is overcome
-            else{
-                timestamp = 0;
-                // timestamp = static_friction(joint) * 100;
-                // dq_error = dq_usr - dq(joint);
-                // // dq_integral += dq_error * dt;
-                // // double derivative_part = k_D * (dq_error - dq_error_old) / dt;
-                // // double integral_part = 1/k_I * dq_integral;
-                // tau_d(joint) = alpha_*P * (dq_error /*+ derivative_part +integral_part*/) + (1 - alpha_)*tau_d(joint);
-                // dq_error_old = dq_error;
-            }//P-controller follows reference-speed
 
-            // tau_d(joint) += tau_nullspace(i) + coriolis(i);
+            tau_d(joint) = coulomb_friction(joint) / 3 + tau_nullspace(joint) + coriolis(joint);
+            dq_filtered = 0.01 * dq + 0.99 * dq_filtered;
+            Eigen::VectorXd helper(7), dq_prime(7);
+            dq_prime = (dq_filtered - dq_old)/0.001;
+            //helper =  tau_d - sigma_0.cwiseProduct(q) - M * dq_prime;
+            helper =  -sigma_0.cwiseProduct(q);
+            sigma_1_guess = helper.cwiseQuotient(dq) - lin_b;
 
+
+            dq_old = dq_filtered;
         }
         else{
             state_observer();
-            tau_d << tau_impedance + tau_nullspace + coriolis -r/* + tau_friction - tau_error*/; //add nullspace, coriolis and friction components to desired torque
+            tau_d << tau_impedance + tau_nullspace + coriolis + tau_friction /*- tau_error*/; //add nullspace, coriolis and friction components to desired torque
         }
 
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
@@ -432,12 +437,11 @@ namespace force_control{
         }//Send command to robot
 
         
-        state_tuner();
+        //state_tuner();
         update_stiffness_and_references();
 
         //logging
         log_values_to_file(log_rate_() && do_logging);
-        //log_values_to_file(do_logging);
         
     }
 
