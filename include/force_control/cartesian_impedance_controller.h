@@ -97,6 +97,8 @@ namespace force_control {
         Eigen::Matrix<double, 6,6> cartesian_inertia_target_; //impedance damping term
         Eigen::Matrix<double, 6,7> jacobian; //jacobian matrix of robot
         Eigen::MatrixXd jacobian_transpose_pinv;
+        Eigen::MatrixXd jacobian_pinv;
+        Eigen::MatrixXd N;
         Eigen::Matrix<double, 7,1> coriolis; //coriolis torques of robot
         Eigen::Matrix<double, 7, 7> M; //Mass-matrix
         Eigen::Matrix<double, 7,1> pos_measured = Eigen::MatrixXd::Zero(7,1); //Measured position for logging
@@ -106,6 +108,7 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> dq = Eigen::MatrixXd::Zero(7,1); //measured rotational speed
         Eigen::Matrix<double, 7, 1> dq_filtered = Eigen::MatrixXd::Zero(7,1); //rotational speed filtered for friction compensation
         Eigen::Matrix<double, 7, 1> dq_d = Eigen::MatrixXd::Zero(7,1); //desired rotational speed
+        Eigen::Matrix<double, 7, 1> dq_imp = Eigen::MatrixXd::Zero(7,1); //"impedance dq", dq without the nullspace-part of it
         Eigen::Matrix<double, 7, 1> q = Eigen::MatrixXd::Zero(7,1); //position of joint measured
         Eigen::Matrix<double, 7, 1> gravity = Eigen::MatrixXd::Zero(7,1); //gravity vector
         Eigen::Matrix<double, 7, 1> tau_impedance = Eigen::MatrixXd::Zero(7,1); //torque for every joint from Jacobi * F_cmd
@@ -166,8 +169,8 @@ namespace force_control {
         int timestamp = 0; //helper for linear increase of test torque
         // end FLAGS
         double filter_params_{0.005};
-        double nullspace_stiffness_{1};
-        double nullspace_stiffness_target_{1};
+        double nullspace_stiffness_{0.1};
+        double nullspace_stiffness_target_{0.1};
         const double delta_tau_max_{1.0}; //max. torque-rate to ensure continuity
         Eigen::Matrix<double, 7, 1> q_d_nullspace_; //neutral pose;
         Eigen::Vector3d position_d_;
@@ -176,7 +179,7 @@ namespace force_control {
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
         unsigned int count = 0; //logging
-        franka_hw::TriggerRate log_rate_{100}; //logging
+        franka_hw::TriggerRate log_rate_{50}; //logging
         const double dt = 0.001;
 
         //repulsion sphere around right hand;

@@ -26,11 +26,11 @@ namespace force_control {
         if(log){
             std::ofstream testing/*, F_log, F_error*/, pose_error, friction_of,  tau_log, optimization  , mass/*, dq_log , coriolis_of, threshold*/;
 
-            testing.open("/home/viktor/Documents/BA/log/testing.txt", std::ios::app);
-            if (testing.is_open()){
-                testing << count << " , " << joint << " , " << sigma_0_guess << " , " << q(joint) << " , " << tau_d(joint) << " , " << z_guess << " , " << x_integral << "\n";
-            }
-            testing.close();
+            // testing.open("/home/viktor/Documents/BA/log/testing.txt", std::ios::app);
+            // if (testing.is_open()){
+            //     testing << count << " , " << joint << " , " << sigma_0_guess << " , " << q(joint) << " , " << tau_d(joint) << " , " << z_guess << " , " << x_integral << "\n";
+            // }
+            // testing.close();
 
             tau_log.open("/home/viktor/Documents/BA/log/tau.txt", std::ios::app);
             if (tau_log.is_open()){
@@ -53,13 +53,13 @@ namespace force_control {
 
             friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt", std::ios::app);
             if (friction_of.is_open()){
-            friction_of << count << "," << tau_nullspace.transpose() << " , " << -r.transpose() << " , " << tau_friction.transpose() << "\n";
+            friction_of << count << "," << -r.transpose() << " , " << friction_optimized.transpose() << " , " << tau_friction.transpose() << "\n";
             }
             friction_of.close();
 
             optimization.open("/home/viktor/Documents/BA/log/optimization.txt", std::ios::app);
             if (optimization.is_open()){
-            optimization << count << "," << dz.transpose() << " , " << " , " << z.transpose() << " ,  " << dq.transpose() << " , " << q.transpose() << "\n";
+            optimization << count << "," << f.transpose() << " , " << " , " << g.transpose() << " ,  " << dq_imp.transpose() << " , " << q.transpose() << "\n";
             }
             optimization.close();
 
@@ -94,11 +94,10 @@ namespace force_control {
             // }
             // dq_log.close();
 
-            if( count % 100 == 0){
-                std::cout << (Eigen::MatrixXd::Identity(7, 7) -
-                          jacobian.transpose() * jacobian_transpose_pinv) << "\n";
-                std::cout << "---------------------------------------------------- \n";
-            }
+            // if( count % 100 == 0){
+            //     std::cout << N << "\n";
+            //     std::cout << "---------------------------------------------------- \n";
+            // }
 
             count += 1;
         }
@@ -227,7 +226,6 @@ namespace force_control {
         }
 
         state_tuner();
-        tau_friction = friction_optimized;
         // Eigen::VectorXd tau_friction_nullspace (7);
         // tau_friction_nullspace = (Eigen::MatrixXd::Identity(7, 7) -
         //                   jacobian.transpose() * jacobian_transpose_pinv) * tau_friction;
@@ -235,17 +233,15 @@ namespace force_control {
 
 
         // Eigen::VectorXd F_friction_theory (6), K_vector(6);
-        // F_friction_theory = jacobian_transpose_pinv * (-r);
+        // F_friction_theory = jacobian_transpose_pinv * -1 * r;
         // K_vector << K.diagonal();
         // error_threshold << F_friction_theory.cwiseQuotient(K_vector);
         // for(int i = 0; i < 6; ++i){
         //     //F_friction_keep(i) = F_friction_theory(i);
-        //     F_friction_keep(i) = (std::abs(error(i)) > error_goal(i) /* && std::abs(error(i)) < std::abs(error_threshold(i))*/) * F_friction_theory(i);
+        //     F_friction_keep(i) = std::min(std::abs(error(i))/error_goal(i), 1.0) * F_friction_theory(i);
         // }
-        // tau_friction = jacobian.transpose() * F_friction_keep;
-        // for(int i = 0; i < 7; ++i){
-        //     tau_friction(i) = sgn(tau_impedance_filtered(i)) * std::abs(tau_friction(i));
-        // }
+        tau_friction = friction_optimized;
+        
     }
 
 
@@ -258,10 +254,11 @@ namespace force_control {
     }
 
     void CartesianImpedanceController::state_tuner(){
-        g(6) = (qua_a(6) + (qua_b(6) - qua_a(6)) * exp(-1 * std::abs(dq_filtered(6)/qua_c(6)))) * sgn(dq_filtered(6)) + lin_a(6) * dq_filtered(6);
-        f = lin_b.cwiseProduct(dq_filtered) + offset_friction;
+        dq_imp = dq - N * dq_filtered;
+        g(6) = (qua_a(6) + (qua_b(6) - qua_a(6)) * exp(-1 * std::abs(dq_imp(6)/qua_c(6)))) * sgn(dq_imp(6)) + lin_a(6) * dq_imp(6);
+        f = lin_b.cwiseProduct(dq_imp) + offset_friction;
         //sigma_0 = (r - f - dq_filtered).array() / (z.array() - dq_filtered.array().abs() / g.array() * z.array());
-        dz = dq_filtered.array() - dq_filtered.array().abs() / g.array() * sigma_0.array() * z.array();
+        dz = dq_imp.array() - dq_imp.array().abs() / g.array() * sigma_0.array() * z.array();
         z = 0.001 * dz + z;
         friction_optimized = sigma_0.array() * z.array() + sigma_1.array() * dz.array() + f.array();
         // friction_optimized = friction_optimized.array().abs() * tau_impedance_filtered.array().sign();

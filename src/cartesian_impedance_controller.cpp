@@ -333,6 +333,8 @@ namespace force_control{
         Eigen::VectorXd tau_task(7);
         // pseudoinverse for nullspace handling
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
+        pseudoInverse(jacobian, jacobian_pinv);
+        N = (Eigen::MatrixXd::Identity(7, 7) - jacobian_pinv * jacobian);
 
         //construct external repulsion force
         /*
@@ -427,7 +429,7 @@ namespace force_control{
         }
         else{
             state_observer();
-            tau_d << tau_impedance + tau_nullspace + coriolis + tau_friction /*- tau_error*/; //add nullspace, coriolis and friction components to desired torque
+            tau_d << tau_impedance + tau_nullspace + coriolis /*+ tau_friction  - tau_error*/; //add nullspace, coriolis and friction components to desired torque
         }
 
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
