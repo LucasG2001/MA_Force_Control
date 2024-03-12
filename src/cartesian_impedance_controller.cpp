@@ -386,7 +386,6 @@ namespace force_control{
         tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;      
         //use for testing. test and joint are given over from demo.cpp to select whether testing is active and what joint is actuated.
         //All other joint torques are set to zero. Goal is to follow the wanted velocity dq_usr
-      
 
         if (test){ //Only set torques for the joint you want to test
 
@@ -429,22 +428,19 @@ namespace force_control{
         }
         else{
             state_observer();
-            tau_d << tau_impedance + tau_nullspace + coriolis /*+ tau_friction  - tau_error*/; //add nullspace, coriolis and friction components to desired torque
+            tau_d << tau_impedance + tau_nullspace + coriolis + tau_friction /* - tau_error*/; //add nullspace, coriolis and friction components to desired torque
         }
-
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
-
         for (size_t i = 0; i < 7; ++i) {
             joint_handles_[i].setCommand(tau_d(i));
         }//Send command to robot
 
-        
+
         //state_tuner();
         update_stiffness_and_references();
 
         //logging
         log_values_to_file(log_rate_() && do_logging);
-        
     }
 
 
