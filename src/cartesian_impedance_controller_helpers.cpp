@@ -13,11 +13,11 @@ namespace force_control {
         // impedance parameters
 		//T =  filter_params_ * cartesian_inertia_target_ + (1.0 - filter_params_) * T;
 		//at the moment we cannot use variable inertia
-        K = filter_params_ * cartesian_stiffness_target_ + (1.0 - filter_params_) * K;
-        D = filter_params_ * cartesian_damping_target_ + (1.0 - filter_params_) * D;
+        K = 0.001 * cartesian_stiffness_target_ + (1.0 - 0.001) * K;
+        D = 0.001 * cartesian_damping_target_ + (1.0 - 0.001) * D;
 		//safety bubble
-	    repulsion_K = filter_params_ * repulsion_K_target_ + (1.0 - filter_params_) * repulsion_K;
-	    repulsion_D = filter_params_ * repulsion_D_target_ + (1.0 - filter_params_) * repulsion_D;
+	    repulsion_K = 0.001 * repulsion_K_target_ + (1.0 - 0.001) * repulsion_K;
+	    repulsion_D = 0.001 * repulsion_D_target_ + (1.0 - 0.001) * repulsion_D;
 		//nullspace stiffness
         nullspace_stiffness_ =
                 filter_params_ * nullspace_stiffness_target_ + (1.0 - filter_params_) * nullspace_stiffness_;
@@ -25,7 +25,8 @@ namespace force_control {
                 position_and_orientation_d_target_mutex_);
 		//desired position and force
 		//ToDo:: check what happens if we do no interpolation on reference pose
-        position_d_ = 2*filter_params_ * position_d_target_ + (1.0 - 2*filter_params_) * position_d_;
+        position_d_ = filter_params_ * position_d_target_ + (1.0 - filter_params_) * position_d_;
+	    velocity_d_ = filter_params_ * velocity_d_target_ + (1.0 - filter_params_) * velocity_d_;
         orientation_d_ = orientation_d_.slerp(2*filter_params_, orientation_d_target_);
 		F_contact_des = 0.05 * F_contact_target + 0.95 * F_contact_des;
 

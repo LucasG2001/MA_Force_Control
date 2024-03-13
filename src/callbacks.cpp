@@ -134,13 +134,14 @@ namespace force_control {
                     position_and_orientation_d_target_mutex_);
             position_d_target_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
 			// Safety regulation (sanity check to keep desired position inside of workspace, length of panda robot is approx 1.12m)
-			if (position_d_target_.x() <= 0.25) { position_d_target_.x() = 0.26; }
+			if (position_d_target_.x() <= 0.04) { position_d_target_.x() = 0.2; }
 	        if (abs(position_d_target_.y()) > 0.6) { position_d_target_.y() *= 0.6/abs(position_d_target_.y()); }
 	        if (position_d_target_.z() <= 0.01) { position_d_target_.z() = 0.035; }
 			if (position_d_target_.norm() > 0.85){
 				position_d_target_ = (0.85/position_d_target_.norm()) * position_d_target_;
 				ROS_INFO("Desired Position is out of Workspace bounds");
 			}
+			if (msg->header.frame_id == "CLEAR"){I_error *= 0.0; }
             Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
             orientation_d_target_.coeffs() << msg->pose.orientation.x, msg->pose.orientation.y,
                     msg->pose.orientation.z, msg->pose.orientation.w;
@@ -198,14 +199,14 @@ namespace force_control {
 
     }
 
-    void CartesianImpedanceController::HandPoseCallback(const geometry_msgs::Point &right_hand_pos) {
+    void CartesianImpedanceController::HandPoseCallback(const geometry_msgs::Pose &right_hand_pose) {
 		do_logging = true;
         //ROS_INFO("received hand position");
-        R = 0.3;
+        R = 0.4;
 
-        C.x() = 0.5 * right_hand_pos.x + 0.5 * C.x(); //smoothing
-        C.y() = 0.5 * right_hand_pos.y + 0.5 * C.y();
-        C.z() = 0.5 * right_hand_pos.z + 0.5 * C.z();
+        C.x() = 0.05 * right_hand_pose.position.x + 0.95 * C.x(); //smoothing
+        C.y() = 0.05 * right_hand_pose.position.y + 0.95 * C.y();
+        C.z() = 0.05 * right_hand_pose.position.z + 0.95 * C.z();
 
 
     }
@@ -301,6 +302,8 @@ namespace force_control {
 		//cartesian impedance general
 		ROS_INFO("Updating Impedance Parameters");
 		cartesian_stiffness_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->stiffness.data());
+		if (cartesian_stiffness_target_.norm() <= 0.1) { control_mode = 1; std::cout << "free floating" << "\n" ;} //free float
+		else {control_mode = 0; }
 		cartesian_damping_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->damping.data());
 		//cartesian_inertia_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->stiffness.data());
 		//at the moment we cannot use variable inertia

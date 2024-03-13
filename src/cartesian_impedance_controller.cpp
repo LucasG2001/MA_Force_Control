@@ -11,6 +11,8 @@
 #include <pluginlib/class_list_macros.h>
 #include <franka_msgs/SetForceTorqueCollisionBehavior.h>
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
+#define pGripperRight Eigen::Vector3d(0, -0.11, 0.07)
+#define pGripperLeft Eigen::Vector3d(0, 0.11, 0.07)
 
 
 namespace force_control{
@@ -136,14 +138,14 @@ namespace force_control{
 
 
 
-        dynamic_reconfigure_compliance_param_node_ =
-                ros::NodeHandle(node_handle.getNamespace() + "/dynamic_reconfigure_compliance_param_node");
+        //dynamic_reconfigure_compliance_param_node_ =
+          //      ros::NodeHandle(node_handle.getNamespace() + "/dynamic_reconfigure_compliance_param_node");
 
-        dynamic_server_compliance_param_ = std::make_unique<
-                dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>(
-                dynamic_reconfigure_compliance_param_node_);
-        dynamic_server_compliance_param_->setCallback(
-                boost::bind(&CartesianImpedanceController::complianceParamCallback, this, _1, _2));
+        //dynamic_server_compliance_param_ = std::make_unique<
+          //      dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>(
+            //    dynamic_reconfigure_compliance_param_node_);
+        //dynamic_server_compliance_param_->setCallback(
+          //      boost::bind(&CartesianImpedanceController::complianceParamCallback, this, _1, _2));
 
 
         return true;
@@ -168,9 +170,7 @@ namespace force_control{
         orientation_d_ = Eigen::Quaterniond(initial_transform.rotation());
         position_d_target_ = initial_transform.translation();
         orientation_d_target_ = Eigen::Quaterniond(initial_transform.rotation());
-
-        // set nullspace equilibrium configuration to initial q
-        q_d_nullspace_ = q_initial;
+		//q_d_nullspace_ = q_initial;
         //free float
         //leave this commented out if you don't want to free float the end-effector
         /**
@@ -220,6 +220,10 @@ namespace force_control{
         std::array<double, 7> coriolis_array = model_handle_->getCoriolis();
         std::array<double, 42> jacobian_array = model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
 	    std::array<double, 42> jac_j7 = model_handle_->getZeroJacobian(franka::Frame::kJoint7);
+		//gripper control points
+	    Eigen::Affine3d T_base_flange(Eigen::Matrix4d::Map(model_handle_-> getPose(franka::Frame::kFlange).data()));
+	    Eigen::Vector3d gripper_left = T_base_flange.rotation() * pGripperLeft + T_base_flange.translation();
+	    Eigen::Vector3d gripper_right = T_base_flange.rotation() * pGripperRight + T_base_flange.translation();
 
         // convert to Eigen
 	    Eigen::Map<Eigen::Matrix<double, 3, 1>> joint7_position(joint7.data() + 12, 3);
@@ -242,10 +246,10 @@ namespace force_control{
         // position error
         error.head(3) << position - position_d_;
 	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
-	    double positionLowerBound = -0.15 * 250.0/K(0,0);
-	    double positionUpperBound = 0.15 * 250.0/K(0,0);
+	    double errorLowerBound = -0.1 * 250.0/K(0,0);
+	    double errorUpperBound = 0.1 * 250.0/K(0,0);
 	    // Apply clamping
-	    error.head(3) = error.head(3).cwiseMax(positionLowerBound).cwiseMin(positionUpperBound);
+	    error.head(3) = error.head(3).cwiseMax(errorLowerBound).cwiseMin(errorUpperBound);
 
 	    // orientation error
         if (orientation_d_.coeffs().dot(orientation.coeffs()) < 0.0) {
@@ -275,58 +279,87 @@ namespace force_control{
         I_F_error += dt * (F_contact_des - F_ext); //+ in gazebo (-) on real robot //need to multiply with Sf here, else it gets accumulated nonstop
         F_cmd = 0.4 * (F_contact_des - F_ext) + 0.9 * I_F_error + 0.9 * F_contact_des; //F_contact_des is filtered from F_contact_target
 	    // compute impedance control Force (simplified control law Lambda = Theta)
-		//ToDo: Why is I_error negative (same as error in F_impedance)?
-	    F_impedance = -1 * (D * (jacobian * dq) + K * error + I_error);
-		//full impedance control law
-		//F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
 
         // allocate variables
-        Eigen::VectorXd tau_nullspace(7), tau_d(7), tau_impedance(7), tau_repulsion(7);
+        Eigen::VectorXd tau_nullspace(7), tau_d(7), tau_impedance(7);
         // pseudoinverse for nullspace handling
-        Eigen::MatrixXd jacobian_transpose_pinv, N, N_pinv;
+        Eigen::MatrixXd jacobian_transpose_pinv, N, N_pinv, positional_jacobian, Jp_T_pinv;
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
         //construct external repulsion force
-		//we check two points
-	    Eigen::Vector3d r_EE = position - C; //End effector
-		Eigen::Vector3d r_joint7 = joint7_position - C; //Franka coordinate system joint 7
-        Eigen::Vector3d w = (jacobian*dq).head(3); //linear EE velocity
+		//we check four points
+		Eigen::Vector3d control_points[4];
+		int min_index = 0;
+		Eigen::Matrix<double, 4, 1> distances;
+	    control_points[0] = position - C; //End effector
+		control_points[1]  = joint7_position - C; //Franka coordinate system joint 7
+	    control_points[2]  = gripper_left - C; //left gripper point (seen from robot)
+	    control_points[3]  = gripper_right - C; //left gripper point (seen from robot)
+		r = control_points[0];
+		for (int i = 1; i < 4; i++){
+			if(control_points[i].norm() < r.norm()){ r = control_points[i]; min_index = i;} //get smallest r
+		}
+	    //get projected radial velocity
+	    Eigen::Vector3d v = ((jacobian * dq).head(3)).dot(r) * 1/r.squaredNorm() * r;
+	    double penetration_depth = std::max(0.0, R-r.norm());
+		//calculate repulsive torques
+	    if(r.norm() <= R){
+		    //I_error =  0.999 * I_error; //EMA filter for I_error
+		    F_repulsion.head(3) = repulsion_K * penetration_depth * r/(r.norm()) - repulsion_D * v;
+		    if (min_index == 1){
+			    //use joint 7 jacobian if joint 7 is detected as nearest
+			    tau_repulsion = 0.1 * (jacobian_j7.transpose() * F_repulsion) + 0.9 * tau_repulsion; // EMA for repulsive tau
+		    }
+		    else {
+			    tau_repulsion = 0.1 * (jacobian.transpose() * F_repulsion) + 0.9 * tau_repulsion; //EMA for repulsive tau
+		    }
 
-	    /** update repulsive stiffnesses and damping **/
-	    //v = v.dot(r)/r.squaredNorm() * r; //projected velocity
-	    //Eigen::Vector3d projected_error = error.head(3).dot(r)/r.squaredNorm() * r;
-	    // repulsion_K = K.topLeftCorner(3,3) * (error.head(3).cwiseAbs().asDiagonal())/(R-r_eq) + (1-control_mode) * 250 * Eigen::MatrixXd::Identity(3,3);
-
-	    if((r_EE.norm() < R) || (r_joint7.norm() < R )){
-		    r = (r_EE.norm() < r_joint7.norm()) ? r_EE : r_joint7; //take nearest checkpoint for repulsive force
-		    double penetration_depth = std::max(0.0, R-r.norm());
-		    I_error *= 0.0; //clear Integrator slowly
-		    F_repulsion.head(3) = 0.1* (repulsion_K * penetration_depth * r/(r.norm()+0.001) - repulsion_D * w) +
-		                          0.9 * F_repulsion.head(3); //assume Theta = Lambda and smooth with EMA
 	    }
-	    else{ F_repulsion = 0.3 * 0.0 * F_repulsion + 0.7 * F_repulsion; } //command smooth slowdown
-		if (r_EE.norm() < r_joint7.norm()){tau_repulsion = jacobian.transpose() * F_repulsion; }
-		else { tau_repulsion = jacobian_j7.transpose() * F_repulsion; }
+	    else{ tau_repulsion = 0.3 * 0 * tau_repulsion + 0.7 * tau_repulsion; } //command smooth slowdown
+
+
+	    //ToDo: Why is I_error negative (same as error in F_impedance)?
+	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error);
+		//full impedance control law
+	    //F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
+
+		//Singularity avoidance
+		double V, m, m0, k;
+		m0 = 0.0; k = 2.5;
+		m = std::sqrt((jacobian*jacobian.transpose()).determinant());
+		V = k * (m - m0) * (m - m0);
+		//std::cout << "Potential is " << V << " and q is " << q.transpose() << "\n";
+		/**
+		//Nullspace projection did not work as expected
+	    Eigen::Matrix<double, 6, 1> F_imp_pos, F_imp_or;
+	    //F_imp_pos.head(3) = F_impedance.head(3); F_imp_pos.tail(3) << 0, 0, 0;
+	    //F_imp_or.tail(3) = F_impedance.tail(3); F_imp_or.head(3) << 0, 0, 0;
+
 
         // nullspace PD control with damping ratio = 1
-		/**
-		N = Eigen::MatrixXd::Identity(7, 7) - jacobian.transpose() * jacobian_transpose_pinv;
+	    // Extract the top half (3x7 matrix)
+	    positional_jacobian = jacobian.block<3, 7>(0, 0); //extract positional jacobian
+	    pseudoInverse(positional_jacobian.transpose(), Jp_T_pinv);
+
+	    N = Eigen::MatrixXd::Identity(7, 7) - positional_jacobian.transpose() * Jp_T_pinv;
 	    pseudoInverse(N, N_pinv);
-
-        tau_nullspace << N *(nullspace_stiffness_ * config_control * (q_d_nullspace_ - q) - //if config_control = true we control the whole robot configuration
-                          (2.0 * sqrt(nullspace_stiffness_)) * dq);  // if config control ) false we don't care about the joint positions
-
 		**/
-        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_potential) + jacobian.transpose() * Sf * F_cmd;
-        tau_d << tau_impedance + tau_repulsion + coriolis; //add nullspace and coriolis components to desired torque
 
+		N = Eigen::MatrixXd::Identity(7, 7) - jacobian.transpose() * jacobian_transpose_pinv;
+		tau_nullspace << N *(nullspace_stiffness_ * (q_d_nullspace_ - q) - //control to neutral configuration
+						  (2.0 * sqrt(nullspace_stiffness_)) * dq);  // if config control ) false we don't care about the joint positions
+	    tau_nullspace = tau_nullspace.cwiseProduct(nullspace_weights); //weigh different joint differently
+
+		//tau_nullspace << N * -(A * q.cwiseProduct(q) + B * q + c);
+
+        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_potential) + jacobian.transpose() * Sf * F_cmd; //first priority task
+        tau_d << tau_impedance + tau_nullspace + tau_repulsion + coriolis; //add nullspace and coriolis components to desired torque
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities
         for (size_t i = 0; i < 7; ++i) {
             joint_handles_[i].setCommand(tau_d(i));
         }
 
+		//logging and update
         update_stiffness_and_references();
-
-        //logging
         log_values_to_file(log_rate_() && do_logging);
     }
 

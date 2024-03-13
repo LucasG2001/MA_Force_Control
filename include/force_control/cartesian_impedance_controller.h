@@ -34,7 +34,7 @@
 #include <custom_msgs/ImpedanceParameterMsg.h>
 
 #define IDENTITY Eigen::MatrixXd::Identity(6,6)
-
+#define PI 3.1415926536
 namespace force_control {
     typedef actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> ActionServer;
 
@@ -47,22 +47,30 @@ namespace force_control {
                 moveit_action_server_node("cartesian_impedance_controller"),
                 moveit_action_server(moveit_action_server_node, "follow_joint_trajectory", boost::bind(&CartesianImpedanceController::action_callback, this, _1, &moveit_action_server), false)
         {
-	        integrator_weights << 100.0, 100.0, 100.0, 80.0, 80.0, 2.0; //give different DoF different integrator constants
-		        max_I << 8.0, 8.0, 8.0, 5, 5, 2; //  saturation
-	        nullspace_stiffness_target_ = 0.0001;
-	        K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
-	        K.bottomRightCorner(3, 3) << 50, 0, 0, 0, 65, 0, 0, 0, 10;
+	        integrator_weights << 100.0, 100.0, 100.0, 40.0, 40.0, 2.0; //give different DoF different integrator constants
+		        max_I << 8.0, 8.0, 8.0, 6, 6, 2; //  saturation
+	        nullspace_stiffness_target_ = 0;
+	        K.topLeftCorner(3, 3) = 300.0 * Eigen::Matrix3d::Identity();
+	        K.bottomRightCorner(3, 3) << 50, 0, 0, 0, 50, 0, 0, 0, 10;
 	        D.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
 	        D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
-	        repulsion_K = K.topLeftCorner(3,3) * 1;
-	        repulsion_D = D.topLeftCorner(3,3) * 0.1;
+	        repulsion_K = K.topLeftCorner(3,3) * 0.8;
+	        repulsion_D = D.topLeftCorner(3,3) * 0.3;
 	        cartesian_stiffness_target_ = K;
 	        cartesian_damping_target_ = D;
 			repulsion_K_target_ = repulsion_K;
 			repulsion_D_target_ = repulsion_D;
+			nullspace_weights << 0.95, 0.95, 0.95, 0.95, 0.13, 0.13, 0.02;
+			q_d_nullspace_ << 0.0, -PI/4, 0, -3/4*PI, 0.0, PI/2, PI/4; //neutral pose
 			//construct repulsing sphere around 0, 0, 0 as initializer. At first callback of hand position these values are set
 	        R = 0.01; C << 0.0, 0, 0.0;
 			moveit_action_server.start();
+			//Nullspace handling
+			Eigen::Matrix<double, 7, 1> a_diagonal, b_diagonal;
+			a_diagonal << 3.57383,9.6541750,3.57383355,13.31557,0.4765,1.125,0.0595;
+			b_diagonal << 0, 0, 0, 41.8322051343963, 0, -4.20463100422855, 0;
+			c << 0, 0, 0, 32.85501, 0, 3.9261, 0;
+			A = a_diagonal.asDiagonal()*0.5; B = b_diagonal.asDiagonal()*0.5; c = c * 0.5;
 
         }
 
@@ -115,11 +123,19 @@ namespace force_control {
         bool do_logging = true; //set if we do log values
         // end FLAGS
         double filter_params_{0.005};
+		//singularity handling
         double nullspace_stiffness_{0};
         double nullspace_stiffness_target_{0};
+		Eigen::Matrix<double, 7, 1> nullspace_weights;
+		//we compute tau nullspace as a quadratic cost from the joint limits, i.e. tau_null = q^TAq + Bq + C
+		Eigen::Matrix<double, 7, 7> A, B;
+		Eigen::Matrix<double, 7, 1> c;
+
         const double delta_tau_max_{1.0};
         Eigen::Matrix<double, 7, 1> q_d_nullspace_;
         Eigen::Vector3d position_d_;
+	    Eigen::Matrix<double, 6, 1> velocity_d_;
+	    Eigen::Matrix<double, 6, 1> velocity_d_target_;
         Eigen::Quaterniond orientation_d_;
         std::mutex position_and_orientation_d_target_mutex_;
         Eigen::Vector3d position_d_target_;
@@ -135,6 +151,7 @@ namespace force_control {
         Eigen::Vector3d C;
         //all included Forces
         Eigen::Matrix<double, 6, 1> F_repulsion, F_potential, F_impedance;
+		Eigen::Matrix<double, 7, 1> tau_repulsion;
 
         // Dynamic reconfigure
         std::unique_ptr<dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>
@@ -159,7 +176,7 @@ namespace force_control {
 
         // Hand Tracker
         ros::Subscriber sub_hand_pose;
-        void HandPoseCallback(const geometry_msgs::Point& right_hand_pos);
+        void HandPoseCallback(const geometry_msgs::Pose& right_hand_pose);
 
         //moveit action server to execute path planning
         ros::NodeHandle moveit_action_server_node;
