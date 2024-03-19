@@ -14,7 +14,7 @@
 -0.129375
 -0.1
 0.105
--0.009875
+0
 #component a of linear friction model (a*sgn(dq) + b*dq + d)
 1.020625
 1.48125

@@ -203,20 +203,20 @@ namespace force_control{
 
         //loggers
 
-        std::ofstream F;
-        F.open("/home/viktor/Documents/BA/log/F.txt");
-        F << "time Fx Fy Fz Mx My Mz \n";
-        F.close();
+        // std::ofstream F;
+        // F.open("/home/viktor/Documents/BA/log/F.txt");
+        // F << "time Fx Fy Fz Mx My Mz \n";
+        // F.close();
 
         std::ofstream tau;
         tau.open("/home/viktor/Documents/BA/log/tau.txt");
         tau << "time tau0 tau1 tau2 tau3 tau4 tau5 tau6 \n";
         tau.close();
 
-        std::ofstream dq;
-        dq.open("/home/viktor/Documents/BA/log/dq.txt");
-        dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
-        dq.close();
+        // std::ofstream dq;
+        // dq.open("/home/viktor/Documents/BA/log/dq.txt");
+        // dq << "time dq0 dq1 dq2 dq3 dq4 dq5 dq6 dq_d0 dq_d1 dq_d2 dq_d3 dq_d4 dq_d5 dq_d6 \n";
+        // dq.close();
 
         // std::ofstream coriolis_of;
         // coriolis_of.open("/home/viktor/Documents/BA/log/coriolis_of.txt");
@@ -228,19 +228,19 @@ namespace force_control{
         friction_of << "time f0 f1 f2 f3 f4 f5 f6 fs0 fs1 fs2 fs3 fs4 fs5 fs6 e0 e1 e2 e3 e4 e5 e6 \n";
         friction_of.close();
 
-        std::ofstream testing;
-        testing.open("/home/viktor/Documents/BA/log/testing.txt");
-        testing << "time joint guess q tau z x_int \n";
-        testing.close();
+        // std::ofstream testing;
+        // testing.open("/home/viktor/Documents/BA/log/testing.txt");
+        // testing << "time joint guess q tau z x_int \n";
+        // testing.close();
 
         std::ofstream optimization;
         friction_of.open("/home/viktor/Documents/BA/log/optimization.txt");
         friction_of << "time f0 f1 f2 f3 f4 f5 f6 g0 g1 g2 g3 g4 g5 g6 dq0 dq1 dq2 dq3 dq4 dq5 dq6 q0 q1 q2 q3 q4 q5 q6 \n";
 
-        std::ofstream threshold;
-        friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
-        friction_of << "time t0 t1 t2 t3 t4 t5 t6 \n";
-        friction_of.close();
+        // std::ofstream threshold;
+        // friction_of.open("/home/viktor/Documents/BA/log/threshold.txt");
+        // friction_of << "time t0 t1 t2 t3 t4 t5 t6 \n";
+        // friction_of.close();
 
         // std::ofstream F_error;
         // F_error.open("/Home/Documents/BA/log/joint_0");
@@ -251,8 +251,6 @@ namespace force_control{
         pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
         pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd xt yt zt rxt ryt rzt \n";
         pose_error.close();
-
-        std::cout << error_goal_separate.toDenseMatrix() << "\n";
 
         //Load in friction parameters
         load_friction_parameters("/home/viktor/catkin_ws/src/force_control/lists/friction_parameters.txt");
@@ -389,46 +387,21 @@ namespace force_control{
 
         if (test){ //Only set torques for the joint you want to test
 
-            // if(timestamp == 0){ x_start = q(joint);}
-
-            // if(timestamp > 0){
-            //     for (int i = 0; i < 7; i++){
-            //         if (i != joint){
-            //             tau_d(i) =  tau_nullspace(i) + coriolis(i);
-            //         }//all components that are not tested are set to zero
-            //     }
-            //     //torque should reach f_coulomb after 20 seconds
-            //     x_integral += q(joint) * 0.001;
-            //     z_guess = q(joint) - x_start + coulomb_friction(joint) / 40 / coulomb_friction(joint) * (q(joint) * timestamp/1000 + x_integral);
-            //     sigma_0_guess = tau_d(joint) / z_guess;
-            //     tau_d(joint) = coulomb_friction(joint)/20000 * timestamp + tau_nullspace(joint) + coriolis(joint);
-
-            // }
-
-            // ++timestamp;
-
-            //Second testing, comment out all above or all below, don't run at same time
-
             for (int i = 0; i < 7; i++){
                 if (i != joint){
                     tau_d(i) =  tau_nullspace(i) + coriolis(i);
                 }//all components that are not tested are set to zero
             }
-
-            tau_d(joint) = coulomb_friction(joint) / 3 + tau_nullspace(joint) + coriolis(joint);
-            dq_filtered = 0.01 * dq + 0.99 * dq_filtered;
-            Eigen::VectorXd helper(7), dq_prime(7);
-            dq_prime = (dq_filtered - dq_old)/0.001;
-            //helper =  tau_d - sigma_0.cwiseProduct(q) - M * dq_prime;
-            helper =  -sigma_0.cwiseProduct(q);
-            sigma_1_guess = helper.cwiseQuotient(dq) - lin_b;
-
-
-            dq_old = dq_filtered;
+            if(std::abs(dq(joint)) > 0.005){
+                timestamp = 0;
+            }
+            tau_d(joint) = timestamp * coulomb_friction(joint)/3000;
+            ++timestamp;
+        
         }
         else{
             state_observer();
-            tau_d << tau_impedance + tau_nullspace + coriolis + tau_friction /* - tau_error*/; //add nullspace, coriolis and friction components to desired torque
+            tau_d << tau_impedance + tau_nullspace + coriolis  + tau_friction/*  - tau_error*/; //add nullspace, coriolis and friction components to desired torque
         }
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
         for (size_t i = 0; i < 7; ++i) {

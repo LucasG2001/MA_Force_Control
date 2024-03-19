@@ -148,9 +148,10 @@ namespace force_control {
         Eigen::Matrix<double, 7, 1> dz = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> z = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> g = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> g_offset = (Eigen::VectorXd(7) << 0.8054298643,	0.8505747126, 0.6700767263,	0.7261146497,	0.808,	0.55, 0.788).finished();
         Eigen::Matrix<double, 7, 1> f = Eigen::MatrixXd::Zero(7,1);
-        const Eigen::Matrix<double, 7, 1> sigma_0 = (Eigen::VectorXd(7) << 80.8, 59.18, 42.16, 83.64, 32.8, 21.83, 0.53).finished();
-        const Eigen::Matrix<double, 7, 1> sigma_1 = (Eigen::VectorXd(7) << 0.0012728, 0.001, 0.001481, 0.00138, 0.0016, 0.000755, 0.000678).finished();
+        const Eigen::Matrix<double, 7, 1> sigma_0 = (Eigen::VectorXd(7) << 76.95, 37.94, 71.07, 44.02, 21.32, 21.83, 53).finished();
+        const Eigen::Matrix<double, 7, 1> sigma_1 = (Eigen::VectorXd(7) << 0.056, 0.06, 0.064, 0.073, 0.1, 0.0755, 0.000678).finished();
         Eigen::Matrix<double, 7, 1> friction_optimized = Eigen::MatrixXd::Zero(7,1);
         double x_start = 0;
         double x_integral = 0;
@@ -179,7 +180,7 @@ namespace force_control {
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
         unsigned int count = 0; //logging
-        franka_hw::TriggerRate log_rate_{50}; //logging
+        franka_hw::TriggerRate log_rate_{1000}; //logging
         const double dt = 0.001;
 
         //repulsion sphere around right hand;
