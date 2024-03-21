@@ -127,12 +127,13 @@ namespace force_control {
 
         Eigen::Matrix<double, 7, 1> coulomb_friction = Eigen::MatrixXd::Zero(7,1); //coulomb friction parameters imported from lists/friction_parameters.txt
         Eigen::Matrix<double, 7, 1> offset_friction = Eigen::MatrixXd::Zero(7,1); //offset of friction in one direction
-        Eigen::Matrix<double, 7, 1> static_friction_minus = Eigen::MatrixXd::Zero(7,1); //static friction in negative direction
-        Eigen::Matrix<double, 7, 1> lin_a;//component a of linear friction model (a + b*dq)
-        Eigen::Matrix<double, 7, 1> lin_b;//component b of linear friction model (a + b*dq)
-        Eigen::Matrix<double, 7, 1> qua_a;//component a of quadratic friction model (a + b*dq + c*dq²)
-        Eigen::Matrix<double, 7, 1> qua_b;//component b of quadratic friction model (a + b*dq + c*dq²)
-        Eigen::Matrix<double, 7, 1> qua_c;//component c of quadratic friction model (a + b*dq + c*dq²)
+        Eigen::Matrix<double, 7, 1> static_friction = Eigen::MatrixXd::Zero(7,1); //static friction in negative direction
+        Eigen::Matrix<double, 7, 1> beta;//component a of linear friction model (a + b*dq)
+        Eigen::Matrix<double, 7, 1> stribeck_friction;//component b of linear friction model (a + b*dq)
+        Eigen::Matrix<double, 7, 1> dq_s;//component a of quadratic friction model (a + b*dq + c*dq²)
+        Eigen::Matrix<double, 7, 1> qua_a = (Eigen::VectorXd(7) << 0.63, 1.067, 0.663, 1.69, 0.36, 0.63, 0.538).finished();//component a of linear friction model (a + b*dq)
+        Eigen::Matrix<double, 7, 1> qua_b = (Eigen::VectorXd(7) << 0.157, 0.845, 0.037, -0.006, 0.045, 0.097, -0.07).finished();//component b of linear friction model (a + b*dq)
+        Eigen::Matrix<double, 7, 1> qua_c = (Eigen::VectorXd(7) << 0.020, 0.480, -0.132, -0.154, 0.128, -0.002, 0.0321).finished();//component a of quadratic friction model (a + b*dq + c*dq²)
         Eigen::MatrixXi friction_state = Eigen::MatrixXi::Zero(7,1); //current friction state (0 == off, 1 == static, 2 == quadratic, 3 == linear)
 
         //state observer stuff
@@ -146,11 +147,13 @@ namespace force_control {
         //state tuner stuff
 
         Eigen::Matrix<double, 7, 1> dz = Eigen::MatrixXd::Zero(7,1);
+        Eigen::Matrix<double, 7, 1> helper = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> z = Eigen::MatrixXd::Zero(7,1);
         Eigen::Matrix<double, 7, 1> g = Eigen::MatrixXd::Zero(7,1);
-        Eigen::Matrix<double, 7, 1> g_offset = (Eigen::VectorXd(7) << 0.8054298643,	0.8505747126, 0.6700767263,	0.7261146497,	0.808,	0.55, 0.788).finished();
+        Eigen::Matrix<double, 7, 1> g_offset = Eigen::MatrixXd::Zero(7,1);
+        // Eigen::Matrix<double, 7, 1> g_offset = (Eigen::VectorXd(7) << 0.8054298643,	0.8505747126, 0.6700767263,	0.7261146497,	0.808,	0.55, 0.788).finished();
         Eigen::Matrix<double, 7, 1> f = Eigen::MatrixXd::Zero(7,1);
-        const Eigen::Matrix<double, 7, 1> sigma_0 = (Eigen::VectorXd(7) << 76.95, 37.94, 71.07, 44.02, 21.32, 21.83, 53).finished();
+        const Eigen::Matrix<double, 7, 1> sigma_0 = (Eigen::VectorXd(7) << 76.95, 37.94, 71.07, 44.02, 51.32, 21.83, 53).finished();
         const Eigen::Matrix<double, 7, 1> sigma_1 = (Eigen::VectorXd(7) << 0.056, 0.06, 0.064, 0.073, 0.1, 0.0755, 0.000678).finished();
         Eigen::Matrix<double, 7, 1> friction_optimized = Eigen::MatrixXd::Zero(7,1);
         double x_start = 0;
@@ -180,7 +183,7 @@ namespace force_control {
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
         unsigned int count = 0; //logging
-        franka_hw::TriggerRate log_rate_{1000}; //logging
+        franka_hw::TriggerRate log_rate_{50}; //logging
         const double dt = 0.001;
 
         //repulsion sphere around right hand;

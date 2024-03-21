@@ -53,7 +53,7 @@ namespace force_control {
 
             friction_of.open("/home/viktor/Documents/BA/log/friction_of.txt", std::ios::app);
             if (friction_of.is_open()){
-            friction_of << count << "," << -r.transpose() << " , " << friction_optimized.transpose() << " , " << tau_friction.transpose() << "\n";
+            friction_of << count << "," << -r.transpose() << " , " << helper.transpose() << " , " << tau_friction.transpose() << "\n";
             }
             friction_of.close();
 
@@ -127,7 +127,7 @@ namespace force_control {
 
    //Loads friction parameters into vector friction_parameters from file specified in filePath
     void CartesianImpedanceController::load_friction_parameters(const std::string& filePath){
-        Eigen::VectorXd friction_parameters(49);
+        Eigen::VectorXd friction_parameters(35);
         std::ifstream file(filePath);
         
         if (!file.is_open()) {
@@ -137,7 +137,7 @@ namespace force_control {
         std::string line;
         int i = 0; 
 
-        while (i < 49 && std::getline(file, line)) {
+        while (i < 35 && std::getline(file, line)) {
             if (line.empty() || line[0] == '#') {
                 // Disregard empty lines or lines starting with '#'
                 continue;
@@ -155,17 +155,19 @@ namespace force_control {
 
         }
 
-        coulomb_friction = friction_parameters.segment(0, 7);
+        static_friction = friction_parameters.segment(0, 7);
         offset_friction = friction_parameters.segment(7,7);
-        lin_a = friction_parameters.segment(14,7);
-        lin_b = friction_parameters.segment(21,7);
-        qua_a = friction_parameters.segment(28,7);
-        qua_b = friction_parameters.segment(35,7);
-        qua_c = friction_parameters.segment(42,7);
-        g = coulomb_friction.cwiseProduct(g_offset);
+        beta = friction_parameters.segment(14,7);
+        coulomb_friction = friction_parameters.segment(21,7);
+        dq_s = friction_parameters.segment(28,7);
+        g = static_friction;
         file.close(); // Close the file after reading
-        static_friction_minus = offset_friction - coulomb_friction;
-
+        std::cout << static_friction << "\n---------------------\n";
+        std::cout << offset_friction << "\n---------------------\n";
+        std::cout << beta << "\n---------------------\n";
+        std::cout << stribeck_friction << "\n---------------------\n";
+        std::cout << dq_s << "\n---------------------\n";
+        std::cout << g << "\n---------------------\n";
     }
 
 
@@ -268,11 +270,15 @@ namespace force_control {
         dq_imp = dq_filtered - N * dq_filtered;
         Eigen::VectorXd dq_used(7);
         dq_used = dq_imp;
-        // g(6) = (qua_a(6) + (qua_b(6) - qua_a(6)) * exp(-1 * std::abs(dq_used(6)/qua_c(6))));
-        f = lin_b.cwiseProduct(dq_used) + offset_friction;
+        for (int i = 0; i < 7; ++i){
+            g(i) = coulomb_friction(i) + ((static_friction(i) - coulomb_friction(i)) / exp(std::abs(dq_used(i) / dq_s(i))));
+        }
+        g_offset = qua_a.array() + qua_b.array()*q.array() + qua_c.array() * q.array() * q.array();
+        g = g.cwiseProduct(g_offset);
+        f = beta.cwiseProduct(dq_used) + offset_friction;
         //sigma_0 = (r - f - dq_filtered).array() / (z.array() - dq_filtered.array().abs() / g.array() * z.array());
         dz = dq_used.array() - dq_used.array().abs() / g.array() * sigma_0.array() * z.array() + 0.025* tau_impedance_filtered.array()/*(jacobian.transpose() * K * error).array()*/;
-        dz(6) -= 0.02*tau_impedance_filtered(6);
+        // dz(6) -= 0.01*tau_impedance_filtered(6);
         z = 0.001 * dz + z;
         friction_optimized = sigma_0.array() * z.array() + 100 * sigma_1.array() * dz.array() + f.array();
         // friction_optimized = friction_optimized.array().abs() * tau_impedance_filtered.array().sign();

@@ -1,57 +1,42 @@
 #Every line has the friction parameters for every joint (0-7) described in the comment above it
-#Coulomb friction component
-1.273125
-1.48125
-1.250625
-1.384375
-1.6
-0.755
-0.677875
-#friction offset depending on movement direction (in all following formulas "d") - sgn(tau_impedance)*F_c + d 
--0.040625
--0.70125
--0.060625
--0.129375
--0.1
-0.105
-0
-#component a of linear friction model (a*sgn(dq) + b*dq + d)
-1.020625
-1.48125
-1.180625
-1.139375
-1.08
-0.54
-0.439875
-#component b of linear friction model (a*sgn(dq) + b*dq + d)
-1.18 
+#Static friction component F_s (from F_s * sgn(dq))
+1.24125
+1.49
+1.22
+1.38
+1.59
+0.79
+0.69
+#Friction offset depending on movement direction - sgn(tau_impedance)*F_s + F_o 
+-0.05
+-0.70
+-0.07
+-0.13
+-0.1025
+0.103
+-0.02
+#component beta of linear friction model (a*sgn(dq) + beta*dq + F_o)
+0.93
 0 
-0.55
-0.87 
-0.935 
+0.42
+0.5
+0.14 
 0.54 
 0.45
-#component a of quadratic friction model (a + (b - a) * exp(-abs(dq/c)))*sgn(dq) + a_lin * dq
-0
-0
-0
-0
-1.6
-0
+#Coulomb-friction of Stribeck-model (F_c + (F_s - F_c) * exp(-abs(dq/c)))*sgn(dq) + b * dq
+1.24125
+1.49
+1.22
+1.05
+1.19
+0.79
 0.43
-#component b of quadratic friction model (a + (b - a) * exp(-abs(dq/c)))*sgn(dq) + a_lin * dq
-0 
-0 
-0 
-0 
--4.035 
-0 
-0.67
-#component c of quadratic friction model (a + (b - a) * exp(-abs(dq/c)))*sgn(dq) + a_lin * dq
-0 
-0 
-0 
-0 
-12.425 
-0 
-0.049
+
+#component c of Stribeck friction model (F_c + (F_s - F_c) * exp(-abs(dq/c)))*sgn(dq) + b * dq (200 if not used)
+200 
+200 
+200 
+0.002 
+0.059 
+200
+0.05
