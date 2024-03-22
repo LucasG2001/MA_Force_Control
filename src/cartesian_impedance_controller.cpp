@@ -262,14 +262,14 @@ namespace force_control{
         error.tail(3) << -transform.rotation() * error.tail(3);
 
 	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
-	    double rotationLowerBound = -0.1 * 80/K(3,3);
-	    double rotationUpperBound = 0.1 * 80/K(3,3);
+	    double rotationLowerBound = -0.175 * 80/K(3,3);
+	    double rotationUpperBound = 0.175 * 80/K(3,3);
 	    // Apply clamping
 	    error.tail(3) = error.tail(3).cwiseMax(rotationLowerBound).cwiseMin(rotationUpperBound);
 
 
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
-        I_error +=  Sm * dt* (1-control_mode) * integrator_weights.cwiseProduct(error);
+        I_error +=  dt * Sm * (1-control_mode) * integrator_weights.cwiseProduct(error);
         for (int i = 0; i < 6; i++){
             double a = I_error(i,0);
             I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation

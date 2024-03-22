@@ -3,8 +3,16 @@
   <arg name="robot_ip" default="192.168.1.200"/>
   <arg name="robot" default="panda" doc="choose your robot. Possible values: [panda, fr3]"/>
   <arg name="arm_id" default="panda" />
+  <!-- launch endpoint and camera calibration server for hololens-->
+  <include file="$(find ros_tcp_endpoint)/launch/endpoint.launch"/>
+  <node name="hololens_camera_calibration" pkg="ros_camera_calibration" type="calibration_service.py" respawn="false" output="screen"/>
+  <!-- launch Franka control node-->
   <include file="$(find franka_control)/launch/franka_control.launch" load_gripper="true" pass_all_args="true"/>
+  <!-- launch force fields and BBox filtering with force fields and moveit_collision_checker-->
+   <include file="$(find goal_state_publisher)/launch/force_field.launch" load_gripper="true" pass_all_args="true"/>
+   <!-- load controller configuration-->
   <rosparam command="load" file="$(find force_control)/config/force_control.yaml" subst_value="true" />
+  <!-- spawn cartesian impedance controller-->
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="cartesian_impedance_controller"/>
    <node name="interactive_marker"
         pkg="franka_example_controllers"
@@ -12,12 +20,13 @@
     <param name="link_name" value="$(arg arm_id)_link0" />
     <remap to="cartesian_impedance_controller/equilibrium_pose" from="equilibrium_pose" />
   </node>
+  <!-- launch Impedance parameter Controller to set Impedances Dynamically-->
   <node name="impedance_parameter_controller" pkg="goal_state_publisher" type="impedance_param_controller" respawn="false" output="screen"/>
   <include file="$(find panda_moveit_config)/launch/move_group.launch" pass_all_args="true">
     <arg name="allow_trajectory_execution" value="true" />
     <arg name="info" value="true" />
   </include>
-  
+
   <node pkg="rviz" type="rviz" output="screen" name="rviz" args="-f $(arg arm_id)_link0 -d $(dirname)/rviz/task_planning.rviz --splash-screen $(find franka_visualization)/splash.png"/>
   <node name="reconfigure_gui" pkg="dynamic_reconfigure" type="reconfigure_gui" />
 </launch>

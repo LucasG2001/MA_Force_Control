@@ -221,7 +221,6 @@ namespace force_control {
         ros::Rate rate = 150;
         ros::Time callback_start = ros::Time::now(); // Get the trajectory points from the goal
         F_contact_target << 0, 0, 0, 0, 0, 0;
-        filter_params_ = 0.999; //remove filtering of position reference during moveit trajectory
         Sm = IDENTITY;
         Sf = IDENTITY - Sm;
         std::array<double, 7> q_ref{}, dq_ref{};
@@ -234,8 +233,8 @@ namespace force_control {
             // Set the new reference orientation for amd position
             const auto &point = goal->trajectory.points[i];
             std::copy(point.positions.begin(), point.positions.end(), q_ref.begin());
-            q_d_nullspace_ = Eigen::Map<Eigen::Matrix<double, 7, 1>>(q_ref.data());
-            std::copy(point.velocities.begin(), point.velocities.end(), dq_ref.begin());
+            //q_d_nullspace_ = Eigen::Map<Eigen::Matrix<double, 7, 1>>(q_ref.data());
+            //std::copy(point.velocities.begin(), point.velocities.end(), dq_ref.begin());
             //ToDo: Implement Velocity component for cartesian impedance (is it even useful?)
             //dq_desired = Eigen::Map<Eigen::Matrix<double, 7, 1>>(dq_ref.data());
             // w_des  =  J * dq_desired;
@@ -248,7 +247,7 @@ namespace force_control {
                 ros::Duration wait_time = point.time_from_start - last_point.time_from_start;
                 ros::Time loop_start = ros::Time::now();
                 while (ros::Time::now() - loop_start < wait_time && !goal_reached) {
-                    if (error.head(3).norm() < tol && error.tail(3).norm() < 0.5) {
+                    if (error.head(3).norm() < tol && error.tail(3).norm() < 0.09) {
                         goal_reached = true;
                     }
                     ROS_INFO_STREAM("goal reached = " << goal_reached);
@@ -257,9 +256,7 @@ namespace force_control {
                 goal_reached = false;
             }
         }
-
         server->setSucceeded();
-        filter_params_ = 0.005; //set filter back
     }
 
     void CartesianImpedanceController::force_callback(const geometry_msgs::PoseStampedConstPtr &goal_pose) {

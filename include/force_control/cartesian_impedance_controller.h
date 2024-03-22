@@ -47,9 +47,9 @@ namespace force_control {
                 moveit_action_server_node("cartesian_impedance_controller"),
                 moveit_action_server(moveit_action_server_node, "follow_joint_trajectory", boost::bind(&CartesianImpedanceController::action_callback, this, _1, &moveit_action_server), false)
         {
-	        integrator_weights << 100.0, 100.0, 100.0, 40.0, 40.0, 2.0; //give different DoF different integrator constants
-		        max_I << 8.0, 8.0, 8.0, 6, 6, 2; //  saturation
-	        nullspace_stiffness_target_ = 0;
+	        integrator_weights << 200.0, 200.0, 200.0, 80.0, 80.0, 15.0; //give different DoF different integrator constants
+			max_I << 8.0, 8.0, 8.0, 3.5, 3.5, 1.5; //  saturation
+	        nullspace_stiffness_target_ = 0;    
 	        K.topLeftCorner(3, 3) = 300.0 * Eigen::Matrix3d::Identity();
 	        K.bottomRightCorner(3, 3) << 50, 0, 0, 0, 50, 0, 0, 0, 10;
 	        D.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
@@ -98,7 +98,7 @@ namespace force_control {
         std::array<double, 16> EE_T_K; //stiffness frame in EE frame
         Eigen::Affine3d pose_desired;
         Eigen::Matrix<double, 6, 1> error; //pose error (6d)
-        Eigen::Matrix<double, 6, 1> I_error = Eigen::MatrixXd::Zero(6,1); //pose error (6d)
+        Eigen::Matrix<double, 6, 1> I_error = Eigen::MatrixXd::Zero(7,1); //pose error (6d)
         Eigen::Matrix<double, 6, 1> max_I; //maximum Integrator windup
 	    Eigen::Matrix<double, 6, 1> integrator_weights;
         Eigen::Matrix<double, 6, 1>  F_contact_des = Eigen::MatrixXd::Zero(6,1); //desired contact force
