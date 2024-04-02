@@ -129,9 +129,9 @@ install(DIRECTORY launch
 install(DIRECTORY config
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
-install(FILES force_control_plugin.xml lists/friction_parameters.txt
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+# install(FILES 
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
 catkin_install_python(
   PROGRAMS scripts/interactive_marker.py scripts/move_to_start.py scripts/dual_arm_interactive_marker.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

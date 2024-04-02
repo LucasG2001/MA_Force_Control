@@ -164,7 +164,6 @@ namespace force_control{
                 model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
         // convert to eigen
         std::array<double, 49> mass = model_handle_->getMass();
-        M_old = Eigen::Map<Eigen::Matrix<double, 7, 7>>(mass.data());
         Eigen::Map<Eigen::Matrix<double, 7, 1>> q_initial(initial_state.q.data());
         Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
         F_T_EE = initial_state.F_T_EE;
@@ -178,10 +177,16 @@ namespace force_control{
         q_d_nullspace_ = q_initial; //neutral pose
         // set nullspace equilibrium configuration to initial q
         //TODO: set controller paramter callback for dynamic reconfiguration
-        K.topLeftCorner(3, 3) = 250 * Eigen::Matrix3d::Identity();
-        K.bottomRightCorner(3, 3) << 130, 0, 0, 0, 130, 0, 0, 0, 10;
-        D.topLeftCorner(3, 3) = 35 * Eigen::Matrix3d::Identity();
-        D.bottomRightCorner(3, 3) << 25, 0, 0, 0, 25, 0, 0, 0, 6;
+        K.topLeftCorner(3, 3) = 300 * Eigen::Matrix3d::Identity();
+        K.bottomRightCorner(3, 3) << 50, 0, 0, 0, 50, 0, 0, 0, 10;
+        D.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
+        D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 7;
+
+        K_friction.topLeftCorner(3, 3) = 300 * Eigen::Matrix3d::Identity();
+        K_friction.bottomRightCorner(3, 3) << 50, 0, 0, 0, 50, 0, 0, 0, 10;
+        D_friction.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
+        D_friction.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 7;
+
         cartesian_stiffness_target_ = K;
         cartesian_damping_target_ = D;
         max_I << 30.0, 30.0, 30.0, 50.0, 50.0, 2.0; // integrator saturation
@@ -249,11 +254,9 @@ namespace force_control{
 
         std::ofstream pose_error;
         pose_error.open("/home/viktor/Documents/BA/log/pose_error.txt");
-        pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd xt yt zt rxt ryt rzt \n";
+        pose_error << "time x y z rx ry rz xd yd zd rxd ryd rzd f0 f1 f2 f3 f4 f5 f6 \n";
         pose_error.close();
 
-        //Load in friction parameters
-        load_friction_parameters("/home/viktor/catkin_ws/src/force_control/lists/friction_parameters.txt");
     }
 
 
@@ -288,6 +291,14 @@ namespace force_control{
         // position error
         error.head(3) << position - position_d_;
         // orientation error
+
+        error.head(3) << position - position_d_;
+	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
+	    double errorLowerBound = -0.1 * 250.0/K(0,0);
+	    double errorUpperBound = 0.1 * 250.0/K(0,0);
+	    // Apply clamping
+	    error.head(3) = error.head(3).cwiseMax(errorLowerBound).cwiseMin(errorUpperBound);
+
         if (orientation_d_.coeffs().dot(orientation.coeffs()) < 0.0) {
             orientation.coeffs() << -orientation.coeffs();
         }
@@ -297,7 +308,6 @@ namespace force_control{
         // Transform to base frame
         error.tail(3) << -transform.rotation() * error.tail(3);
 
-        error_goal_met = (error_goal.array() > error.array());//elementwise true, if error is met
 
         Eigen::Matrix<double, 6, 1> integrator_weights;
         integrator_weights << 75.0, 75.0, 75.0, 75.0, 75.0, 4.0; //give different DoF different integrator constants
@@ -378,7 +388,6 @@ namespace force_control{
         }
         else{
             tau_friction.setZero();
-            friction_state.setZero();
         }
 
         tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_repulsion + F_potential) + jacobian.transpose() * Sf * F_cmd;      
@@ -395,12 +404,11 @@ namespace force_control{
             if(std::abs(dq(joint)) > 0.005){
                 timestamp = 0;
             }
-            tau_d(joint) = timestamp * coulomb_friction(joint)/3000;
+            tau_d(joint) = timestamp * g(joint)/3000;
             ++timestamp;
         
         }
         else{
-            state_observer();
             tau_d << tau_impedance + tau_nullspace + coriolis  + tau_friction/*  - tau_error*/; //add nullspace, coriolis and friction components to desired torque
         }
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities            
