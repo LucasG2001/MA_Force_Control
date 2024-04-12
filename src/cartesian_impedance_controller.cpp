@@ -266,6 +266,7 @@ namespace force_control{
 	    double rotationUpperBound = 0.175 * 80/K(3,3);
 	    // Apply clamping
 	    error.tail(3) = error.tail(3).cwiseMax(rotationLowerBound).cwiseMin(rotationUpperBound);
+		error.tail(3).z() *= 2; //let the last joint move faster (z)
 
 
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble

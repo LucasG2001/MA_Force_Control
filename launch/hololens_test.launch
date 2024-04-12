@@ -13,7 +13,7 @@
    <!-- load controller configuration-->
   <rosparam command="load" file="$(find force_control)/config/force_control.yaml" subst_value="true" />
   <!-- spawn cartesian impedance controller-->
-  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="cartesian_impedance_controller"/>
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="log" args="cartesian_impedance_controller"/>
    <node name="interactive_marker"
         pkg="franka_example_controllers"
         type="interactive_marker.py">
