@@ -136,7 +136,7 @@ namespace force_control {
 			// Safety regulation (sanity check to keep desired position inside of workspace, length of panda robot is approx 1.12m)
 			if (position_d_target_.x() <= 0.04) { position_d_target_.x() = 0.2; }
 	        if (abs(position_d_target_.y()) > 0.6) { position_d_target_.y() *= 0.6/abs(position_d_target_.y()); }
-	        if (position_d_target_.z() <= 0.02) { position_d_target_.z() = 0.02; }
+	        if (position_d_target_.z() <= 0.015) { position_d_target_.z() = 0.015; }
 			if (position_d_target_.norm() > 0.85){
 				position_d_target_ = (0.85/position_d_target_.norm()) * position_d_target_;
 				ROS_INFO("Desired Position is out of Workspace bounds");
@@ -148,7 +148,7 @@ namespace force_control {
             if (last_orientation_d_target.coeffs().dot(orientation_d_target_.coeffs()) < 0.0) {
                 orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
             }
-            ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << "\n" << orientation_d_target_.coeffs());
+            //ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << "\n" << orientation_d_target_.coeffs());
     } //callback
 
     void CartesianImpedanceController::control_mode_callback(const std_msgs::Int16ConstPtr &msg) {
@@ -310,7 +310,5 @@ namespace force_control {
 		Eigen::Matrix<double, 6, 6> bubble_damping = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->safety_bubble_damping.data());
 		repulsion_K_target_ = bubble_stiffness.topLeftCorner(3,3);
 		repulsion_D_target_ = bubble_damping.topLeftCorner(3,3);
-		std::cout << "new bubble stiffness is " << repulsion_K_target_;
-		std::cout << "new bubble damping is " << repulsion_D_target_;
 	}
 } //namespace force_control

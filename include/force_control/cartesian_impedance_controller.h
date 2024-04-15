@@ -120,7 +120,7 @@ namespace force_control {
 	    Eigen::Matrix<double, 3,3> repulsion_K_target_, repulsion_D_target_; //impedance damping term
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
-        bool do_logging = true; //set if we do log values
+        bool do_logging = false; //set if we do log values
         // end FLAGS
         double filter_params_{0.005};
 		//singularity handling

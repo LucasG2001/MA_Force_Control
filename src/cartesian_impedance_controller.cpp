@@ -266,7 +266,7 @@ namespace force_control{
 	    double rotationUpperBound = 0.175 * 80/K(3,3);
 	    // Apply clamping
 	    error.tail(3) = error.tail(3).cwiseMax(rotationLowerBound).cwiseMin(rotationUpperBound);
-		error.tail(3).z() *= 2; //let the last joint move faster (z)
+		error.tail(3).z() *= 3; //let the last joint move faster (z)
 
 
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
@@ -319,7 +319,7 @@ namespace force_control{
 
 
 	    //ToDo: Why is I_error negative (same as error in F_impedance)?
-	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error);
+	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error) * (1-control_mode); // control mode = 1 for free float
 		//full impedance control law
 	    //F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
 
