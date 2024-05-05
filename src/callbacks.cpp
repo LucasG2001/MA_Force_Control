@@ -297,7 +297,7 @@ namespace force_control {
 
 	void CartesianImpedanceController::impedance_param_reconfigure_callback(const custom_msgs::ImpedanceParameterMsgConstPtr &msg){
 		//cartesian impedance general
-		ROS_INFO("Updating Impedance Parameters");
+		//ROS_INFO("Updating Impedance Parameters");
 		cartesian_stiffness_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->stiffness.data());
 		if (cartesian_stiffness_target_.norm() <= 0.1) { control_mode = 1; std::cout << "free floating" << "\n" ;} //free float
 		else {control_mode = 0; }
