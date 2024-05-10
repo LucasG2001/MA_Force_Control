@@ -341,6 +341,7 @@ namespace force_control{
         Eigen::VectorXd tau_task(7);
         // pseudoinverse for nullspace handling
         pseudoInverse(jacobian.transpose(), jacobian_transpose_pinv);
+	//Nullspace-calculation for friction compensation
         pseudoInverse(jacobian, jacobian_pinv);
         N = (Eigen::MatrixXd::Identity(7, 7) - jacobian_pinv * jacobian);
 
