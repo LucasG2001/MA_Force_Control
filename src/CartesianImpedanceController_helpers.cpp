@@ -123,17 +123,19 @@ namespace force_control {
     //TODO: Afterwards, goes into the viscous domain and follows a linear raise depending on empiric parameters
     void CartesianImpedanceController::calculate_tau_friction(){
         double alpha = 0.01;//constant for exponential filter in relation to static friction moment        
-        dq_filtered = alpha* dq + (1 - alpha) * dq_filtered;
-        tau_impedance_filtered = alpha*tau_impedance + (1 - alpha) * tau_impedance_filtered;
+        dq_filtered = alpha* dq + (1 - alpha) * dq_filtered; //Filtering dq of every joint
+        tau_impedance_filtered = alpha*tau_impedance + (1 - alpha) * tau_impedance_filtered; //Filtering tau_impedance
+        //Creating and filtering a "fake" tau_impedance with own weights, optimized for friction compensation (else friction compensation would get stronger with higher stiffnesses)
         tau_friction_impedance = jacobian.transpose() * Sm * (-alpha * (D_friction*(jacobian*dq) + K_friction * error)) + (1 - alpha) * tau_friction_impedance;
+        //Creating "fake" dq, that acts only in the impedance-space, else dq in the nullspace also gets compensated, which we do not want due to null-space movement
         dq_imp = dq_filtered - N * dq_filtered;
 
+        //Calculation of friction force according to Bachelor Thesis: https://polybox.ethz.ch/index.php/s/iYj8ALPijKTAC2z?path=%2FFriction%20compensation
         f = beta.cwiseProduct(dq_imp) + offset_friction;
         dz = dq_imp.array() - dq_imp.array().abs() / g.array() * sigma_0.array() * z.array() + 0.025* tau_friction_impedance.array()/*(jacobian.transpose() * K * error).array()*/;
         dz(6) -= 0.02*tau_friction_impedance(6);
         z = 0.001 * dz + z;
         tau_friction = sigma_0.array() * z.array() + 100 * sigma_1.array() * dz.array() + f.array();  
-        // tau_friction.setZero(); 
     }
 
 
