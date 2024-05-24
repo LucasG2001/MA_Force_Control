@@ -132,6 +132,8 @@ namespace force_control {
 
         //Calculation of friction force according to Bachelor Thesis: https://polybox.ethz.ch/index.php/s/iYj8ALPijKTAC2z?path=%2FFriction%20compensation
         f = beta.cwiseProduct(dq_imp) + offset_friction;
+        g(4) = (coulomb_friction(4) + (static_friction(4) - coulomb_friction(4)) * exp(-1 * std::abs(dq_used(4)/dq_s(4))));
+        g(6) = (coulomb_friction(6) + (static_friction(6) - coulomb_friction(6)) * exp(-1 * std::abs(dq_used(6)/dq_s(6))));
         dz = dq_imp.array() - dq_imp.array().abs() / g.array() * sigma_0.array() * z.array() + 0.025* tau_friction_impedance.array()/*(jacobian.transpose() * K * error).array()*/;
         dz(6) -= 0.02*tau_friction_impedance(6);
         z = 0.001 * dz + z;
