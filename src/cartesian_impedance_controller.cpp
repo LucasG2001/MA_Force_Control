@@ -273,7 +273,8 @@ namespace force_control{
         I_error +=  dt * Sm * (1-control_mode) * integrator_weights.cwiseProduct(error);
         for (int i = 0; i < 6; i++){
             double a = I_error(i,0);
-            I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation
+            I_error(i,0) = std::min(std::max(-max_I(i,0), a), max_I(i,0)); //saturation // control mode = 1 for free float
+
         }
         //Force PID
         F_ext = 0.9 * F_ext + 0.1 * Eigen::Map<Eigen::Matrix<double, 6, 1>>(robot_state.O_F_ext_hat_K.data()); //low pass filter
@@ -319,7 +320,7 @@ namespace force_control{
 
 
 	    //ToDo: Why is I_error negative (same as error in F_impedance)?
-	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error) * (1-control_mode); // control mode = 1 for free float
+	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error) ;
 		//full impedance control law
 	    //F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
 

@@ -299,7 +299,11 @@ namespace force_control {
 		//cartesian impedance general
 		//ROS_INFO("Updating Impedance Parameters");
 		cartesian_stiffness_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->stiffness.data());
-		if (cartesian_stiffness_target_.norm() <= 0.1) { control_mode = 1; std::cout << "free floating" << "\n" ;} //free float
+		//check if there is some sort of free float by checking the rank of the stiffness target
+		Eigen::JacobiSVD<Eigen::MatrixXd> svd(cartesian_stiffness_target_);
+		double tol = 1e-9; // Tolerance for considering singular values as non-zero
+		int rank = (svd.singularValues().array() > tol).count();
+		if (rank < 6) { control_mode = 1; std::cout << "free floating" << "\n" ;} //free float
 		else {control_mode = 0; }
 		cartesian_damping_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->damping.data());
 		//cartesian_inertia_target_ = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(msg->stiffness.data());
