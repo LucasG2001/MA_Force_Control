@@ -319,6 +319,7 @@ namespace force_control{
 
 	    // adapt damping
 	    D =  2.1 * K.cwiseMax(0.0).cwiseSqrt() * Lambda.diagonal().cwiseSqrt().asDiagonal(); // D = 2*sqrt(K*M)
+		//TODO: plot integrator Force, F_impedance and Manipulability ellipsoid
 	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error) ;
 		//full impedance control law
 
