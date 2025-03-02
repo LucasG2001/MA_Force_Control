@@ -241,8 +241,6 @@ namespace force_control{
 
         Lambda = (jacobian * M.inverse() * jacobian.transpose()).inverse();
         T = Lambda; // let robot behave with it's own physical inertia (How can we change the physical inertia and what does it mean?)
-		//T = 0.1 * Lambda; //lightweight robot
-		//T = 5*Lambda; //heavy robot
         // position error
         error.head(3) << position - position_d_;
 	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
@@ -319,10 +317,10 @@ namespace force_control{
 	    else{ tau_repulsion = 0.3 * 0 * tau_repulsion + 0.7 * tau_repulsion; } //command smooth slowdown
 
 
-	    //ToDo: Why is I_error negative (same as error in F_impedance)?
+	    // adapt damping
+	    D =  2.1 * K.cwiseMax(0.0).cwiseSqrt() * Lambda.diagonal().cwiseSqrt().asDiagonal(); // D = 2*sqrt(K*M)
 	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error) ;
 		//full impedance control law
-	    //F_impedance = (Lambda*T.inverse() - IDENTITY) * -F_ext - Lambda*T.inverse()*(D * (jacobian * dq) + K * error + I_error);
 
 		//Singularity avoidance
 		double V, m, m0, k;
