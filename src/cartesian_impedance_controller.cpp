@@ -260,8 +260,8 @@ namespace force_control{
         error.tail(3) << -transform.rotation() * error.tail(3);
 
 	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
-	    double rotationLowerBound = -0.175 * 80/K(3,3);
-	    double rotationUpperBound = 0.175 * 80/K(3,3);
+	    double rotationLowerBound = -0.175 * 20/K(3,3);
+	    double rotationUpperBound = 0.175 * 20/K(3,3);
 	    // Apply clamping
 	    error.tail(3) = error.tail(3).cwiseMax(rotationLowerBound).cwiseMin(rotationUpperBound);
 		error.tail(3).z() *= 3; //let the last joint move faster (z)
@@ -318,7 +318,7 @@ namespace force_control{
 
 
 	    // adapt damping
-	    D =  2.1 * K.cwiseMax(0.0).cwiseSqrt() * Lambda.diagonal().cwiseSqrt().asDiagonal(); // D = 2*sqrt(K*M)
+	    D = 2.2 * K.cwiseSqrt() * Lambda.cwiseMax(0.0).diagonal().cwiseSqrt().asDiagonal(); // D = 2*sqrt(K*M)
 		//TODO: plot integrator Force, F_impedance and Manipulability ellipsoid
 	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error) ;
 		//full impedance control law

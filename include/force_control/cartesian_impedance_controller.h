@@ -47,13 +47,13 @@ namespace force_control {
                 moveit_action_server_node("cartesian_impedance_controller"),
                 moveit_action_server(moveit_action_server_node, "follow_joint_trajectory", boost::bind(&CartesianImpedanceController::action_callback, this, _1, &moveit_action_server), false)
         {
-	        integrator_weights << 200.0, 200.0, 200.0, 80.0, 80.0, 15.0; //give different DoF different integrator constants
-			max_I << 8.0, 8.0, 8.0, 3.5, 3.5, 1.5; //  saturation
+	        integrator_weights << 10.0, 10.0, 10.0, 4.0, 4.0, 1.0; //give different DoF different integrator constants
+			max_I << 1.0, 1.0, 1.0, 1.0, 1.0, 0.5; //  saturation
 	        nullspace_stiffness_target_ = 0;    
 	        K.topLeftCorner(3, 3) = 300.0 * Eigen::Matrix3d::Identity();
 	        K.bottomRightCorner(3, 3) << 50, 0, 0, 0, 50, 0, 0, 0, 10;
 	        D.topLeftCorner(3, 3) = 40 * Eigen::Matrix3d::Identity();
-	        D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 6;
+	        D.bottomRightCorner(3, 3) << 18, 0, 0, 0, 18, 0, 0, 0, 7;
 	        repulsion_K = K.topLeftCorner(3,3) * 0.8;
 	        repulsion_D = D.topLeftCorner(3,3) * 0.3;
 	        cartesian_stiffness_target_ = K;
@@ -120,7 +120,7 @@ namespace force_control {
 	    Eigen::Matrix<double, 3,3> repulsion_K_target_, repulsion_D_target_; //impedance damping term
         //FLAGS
         bool config_control = false; //sets if we want to control the configuration of the robot in nullspace
-        bool do_logging = false; //set if we do log values
+        bool do_logging = true; //set if we do log values
         // end FLAGS
         double filter_params_{0.005};
 		//singularity handling
@@ -141,7 +141,7 @@ namespace force_control {
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
         double count = 0; //logging
-        franka_hw::TriggerRate log_rate_{50}; //logging
+        franka_hw::TriggerRate log_rate_{250}; //logging
         double dt = 0.001;
 
         //repulsion sphere around right hand;

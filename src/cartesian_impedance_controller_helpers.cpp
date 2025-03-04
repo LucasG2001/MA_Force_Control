@@ -13,11 +13,11 @@ namespace force_control {
         // impedance parameters
 		//T =  filter_params_ * cartesian_inertia_target_ + (1.0 - filter_params_) * T;
 		//at the moment we cannot use variable inertia
-        K = 0.001 * cartesian_stiffness_target_ + (1.0 - 0.001) * K;
-        D = 0.001 * cartesian_damping_target_ + (1.0 - 0.001) * D;
+        K = filter_params_ * cartesian_stiffness_target_ + (1.0 - filter_params_) * K;
+        D = filter_params_ * cartesian_damping_target_ + (1.0 - filter_params_) * D;
 		//safety bubble
-	    repulsion_K = 0.001 * repulsion_K_target_ + (1.0 - 0.001) * repulsion_K;
-	    repulsion_D = 0.001 * repulsion_D_target_ + (1.0 - 0.001) * repulsion_D;
+	    repulsion_K = filter_params_ * repulsion_K_target_ + (1.0 - filter_params_) * repulsion_K;
+	    repulsion_D = filter_params_ * repulsion_D_target_ + (1.0 - filter_params_) * repulsion_D;
 		//nullspace stiffness
         nullspace_stiffness_ =
                 filter_params_ * nullspace_stiffness_target_ + (1.0 - filter_params_) * nullspace_stiffness_;
@@ -27,8 +27,8 @@ namespace force_control {
 		//ToDo:: check what happens if we do no interpolation on reference pose
         position_d_ = filter_params_ * position_d_target_ + (1.0 - filter_params_) * position_d_;
 	    velocity_d_ = filter_params_ * velocity_d_target_ + (1.0 - filter_params_) * velocity_d_;
-        orientation_d_ = orientation_d_.slerp(2*filter_params_, orientation_d_target_);
-		F_contact_des = 0.05 * F_contact_target + 0.95 * F_contact_des;
+        orientation_d_ = orientation_d_.slerp(filter_params_, orientation_d_target_);
+		F_contact_des = filter_params_ * F_contact_target + filter_params_ * F_contact_des;
 
     }
 
@@ -51,26 +51,26 @@ namespace force_control {
 			F_error.close();
 
 
-            Eigen::Vector3d desired_orientation = orientation_d_.toRotationMatrix().eulerAngles(0,1,2);
-            pose_error.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt", std::ios::app);
-            if (pose_error.is_open()){
-                pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
-            }
-            pose_error.close();
+	        /*
+			Eigen::Vector3d desired_orientation = orientation_d_.toRotationMatrix().eulerAngles(0,1,2);
+			pose_error.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt", std::ios::app);
+			if (pose_error.is_open()){
+				pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
+			}
+			pose_error.close();
 
-            hand_tracking.open("/home/lucas/Desktop/MA/Force_Data/hand_tracking.txt", std::ios::app);
-            if (hand_tracking.is_open()){
-                hand_tracking << count << "," << C.transpose() << "," << r.transpose() << ","  << F_repulsion.head(3).transpose() << "\n";
-            }
-            hand_tracking.close();
+			hand_tracking.open("/home/lucas/Desktop/MA/Force_Data/hand_tracking.txt", std::ios::app);
+			if (hand_tracking.is_open()){
+				hand_tracking << count << "," << C.transpose() << "," << r.transpose() << ","  << F_repulsion.head(3).transpose() << "\n";
+			}
+			hand_tracking.close();
 
-			/*
-            potential_field.open("/home/lucas/Desktop/MA/Force_Data/potential_force.txt", std::ios::app);
-            if (potential_field.is_open()){
-                potential_field << count << "," << F_potential.head(3).transpose() << "\n";
-            }
-            potential_field.close();
-            */
+			potential_field.open("/home/lucas/Desktop/MA/Force_Data/potential_force.txt", std::ios::app);
+			if (potential_field.is_open()){
+				potential_field << count << "," << F_potential.head(3).transpose() << "\n";
+			}
+			potential_field.close();
+			*/
 
             count += 1;
         }
