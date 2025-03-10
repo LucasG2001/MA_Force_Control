@@ -60,7 +60,7 @@ namespace force_control{
                 ros::TransportHints().reliable().tcpNoDelay());
         //position of right hand for safety bubble
         sub_hand_pose = node_handle.subscribe(
-                "right_hand", 2, &CartesianImpedanceController::HandPoseCallback, this,
+                "/hl_hand_pose", 2, &CartesianImpedanceController::HandPoseCallback, this,
                 ros::TransportHints().reliable().tcpNoDelay());
         //movement with constrained motion in one direction, where force can be applied
         sub_force_action = node_handle.subscribe(
@@ -260,8 +260,8 @@ namespace force_control{
         error.tail(3) << -transform.rotation() * error.tail(3);
 
 	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
-	    double rotationLowerBound = -0.175 * 20/K(3,3);
-	    double rotationUpperBound = 0.175 * 20/K(3,3);
+	    double rotationLowerBound = -0.25 * 20/K(3,3);
+	    double rotationUpperBound = 0.25 * 20/K(3,3);
 	    // Apply clamping
 	    error.tail(3) = error.tail(3).cwiseMax(rotationLowerBound).cwiseMin(rotationUpperBound);
 		error.tail(3).z() *= 3; //let the last joint move faster (z)
