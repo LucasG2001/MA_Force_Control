@@ -136,12 +136,11 @@ namespace force_control {
 			// Safety regulation (sanity check to keep desired position inside of workspace, length of panda robot is approx 1.12m)
 			if (position_d_target_.x() <= 0.04) { position_d_target_.x() = 0.2; }
 	        if (abs(position_d_target_.y()) > 0.6) { position_d_target_.y() *= 0.6/abs(position_d_target_.y()); }
-	        if (position_d_target_.z() <= 0.015) { position_d_target_.z() = 0.015; }
-			if (position_d_target_.norm() > 0.85){
-				position_d_target_ = (0.85/position_d_target_.norm()) * position_d_target_;
+	        if (position_d_target_.z() <= 0.0) { position_d_target_.z() = 0.005; }
+			if (position_d_target_.norm() > 1.0){
+				position_d_target_ = (1.0/position_d_target_.norm()) * position_d_target_;
 				ROS_INFO("Desired Position is out of Workspace bounds");
 			}
-			if (msg->header.frame_id == "CLEAR"){I_error *= 0.0; }
             Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
             orientation_d_target_.coeffs() << msg->pose.orientation.x, msg->pose.orientation.y,
                     msg->pose.orientation.z, msg->pose.orientation.w;
@@ -204,9 +203,9 @@ namespace force_control {
         //ROS_INFO("received hand position");
         R = 0.4;
 
-        C.x() = 0.05 * right_hand_pose.position.x + 0.95 * C.x(); //smoothing
-        C.y() = 0.05 * right_hand_pose.position.y + 0.95 * C.y();
-        C.z() = 0.05 * right_hand_pose.position.z + 0.95 * C.z();
+        C.x() = 0.2 * right_hand_pose.position.x + 0.8 * C.x(); //smoothing
+        C.y() = 0.2 * right_hand_pose.position.y + 0.8 * C.y();
+        C.z() = 0.2 * right_hand_pose.position.z + 0.8 * C.z();
 
 
     }

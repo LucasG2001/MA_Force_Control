@@ -244,8 +244,8 @@ namespace force_control{
         // position error
         error.head(3) << position - position_d_;
 	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
-	    double errorLowerBound = -0.1 * 250.0/K(0,0);
-	    double errorUpperBound = 0.1 * 250.0/K(0,0);
+	    double errorLowerBound = -0.15 * 250.0/K(0,0);
+	    double errorUpperBound = 0.15 * 250.0/K(0,0);
 	    // Apply clamping
 	    error.head(3) = error.head(3).cwiseMax(errorLowerBound).cwiseMin(errorUpperBound);
 
