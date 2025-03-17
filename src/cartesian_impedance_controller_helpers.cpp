@@ -14,7 +14,7 @@ namespace force_control {
 		//T =  filter_params_ * cartesian_inertia_target_ + (1.0 - filter_params_) * T;
 		//at the moment we cannot use variable inertia
         K = filter_params_ * cartesian_stiffness_target_ + (1.0 - filter_params_) * K;
-        D = filter_params_ * cartesian_damping_target_ + (1.0 - filter_params_) * D;
+        //D = filter_params_ * cartesian_damping_target_ + (1.0 - filter_params_) * D;
 		//safety bubble
 	    repulsion_K = filter_params_ * repulsion_K_target_ + (1.0 - filter_params_) * repulsion_K;
 	    repulsion_D = filter_params_ * repulsion_D_target_ + (1.0 - filter_params_) * repulsion_D;
@@ -43,22 +43,23 @@ namespace force_control {
                 F_log << count << "," << F_contact_des(2,0) << "," << F_cmd(2,0) << "," << F_ext.transpose() << "," << F_impedance.transpose() << "\n";
             }
             F_log.close();
-
+			/*
             F_error.open("/home/lucas/Desktop/MA/Force_Data/friction.txt", std::ios::app);
             if (F_error.is_open()){
                 F_error << count << "," << I_error.transpose() << "," << 0 << "," << "\n";
             }
 			F_error.close();
+			 */
 
 
-	        /*
-			Eigen::Vector3d desired_orientation = orientation_d_.toRotationMatrix().eulerAngles(0,1,2);
+
+			Eigen::Vector3d desired_orientation = orientation_d_target_.toRotationMatrix().eulerAngles(0,1,2);
 			pose_error.open("/home/lucas/Desktop/MA/Force_Data/pose_error.txt", std::ios::app);
 			if (pose_error.is_open()){
 				pose_error << count << "," << error.transpose() << "," << position_d_.transpose() << ","  << desired_orientation.transpose() << "," << "\n";
 			}
 			pose_error.close();
-
+			/*
 			hand_tracking.open("/home/lucas/Desktop/MA/Force_Data/hand_tracking.txt", std::ios::app);
 			if (hand_tracking.is_open()){
 				hand_tracking << count << "," << C.transpose() << "," << r.transpose() << ","  << F_repulsion.head(3).transpose() << "\n";

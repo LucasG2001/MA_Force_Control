@@ -47,7 +47,7 @@ namespace force_control {
                 moveit_action_server_node("cartesian_impedance_controller"),
                 moveit_action_server(moveit_action_server_node, "follow_joint_trajectory", boost::bind(&CartesianImpedanceController::action_callback, this, _1, &moveit_action_server), false)
         {
-	        integrator_weights << 10.0, 10.0, 10.0, 4.0, 4.0, 1.0; //give different DoF different integrator constants
+	        integrator_weights << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0; //give different DoF different integrator constants
 			max_I << 1.0, 1.0, 1.0, 1.0, 1.0, 0.5; //  saturation
 	        nullspace_stiffness_target_ = 0;    
 	        K.topLeftCorner(3, 3) = 300.0 * Eigen::Matrix3d::Identity();
@@ -93,6 +93,7 @@ namespace force_control {
 		//Physical quantities
         Eigen::Matrix<double, 6,6> Lambda = IDENTITY; // operational space mass matrix
         Eigen::Matrix<double, 6, 6> Sm = IDENTITY; //task space selection matrix for positions and rotation
+	    Eigen::Matrix<double, 6, 7> J; //EE geometric Jacobian
         Eigen::Matrix<double, 6, 6> Sf = Eigen::MatrixXd::Zero(6,6); //task space selection matrix for forces
         std::array<double, 16> F_T_EE; //end effector in flange frame
         std::array<double, 16> EE_T_K; //stiffness frame in EE frame
@@ -130,7 +131,7 @@ namespace force_control {
 		//we compute tau nullspace as a quadratic cost from the joint limits, i.e. tau_null = q^TAq + Bq + C
 		Eigen::Matrix<double, 7, 7> A, B;
 		Eigen::Matrix<double, 7, 1> c;
-
+	    Eigen::Matrix<double, 7, 1> dq_;
         const double delta_tau_max_{1.0};
         Eigen::Matrix<double, 7, 1> q_d_nullspace_;
         Eigen::Vector3d position_d_;

@@ -137,17 +137,21 @@ namespace force_control {
 			if (position_d_target_.x() <= 0.04) { position_d_target_.x() = 0.2; }
 	        if (abs(position_d_target_.y()) > 0.6) { position_d_target_.y() *= 0.6/abs(position_d_target_.y()); }
 	        if (position_d_target_.z() <= 0.0) { position_d_target_.z() = 0.005; }
-			if (position_d_target_.norm() > 1.0){
-				position_d_target_ = (1.0/position_d_target_.norm()) * position_d_target_;
+			if (position_d_target_.norm() > 0.6){
+				position_d_target_ = (0.7/position_d_target_.norm()) * position_d_target_;
 				ROS_INFO("Desired Position is out of Workspace bounds");
 			}
             Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
             orientation_d_target_.coeffs() << msg->pose.orientation.x, msg->pose.orientation.y,
                     msg->pose.orientation.z, msg->pose.orientation.w;
+			/*
             if (last_orientation_d_target.coeffs().dot(orientation_d_target_.coeffs()) < 0.0) {
                 orientation_d_target_.coeffs() << -orientation_d_target_.coeffs();
+				orientation_d_.coeffs() << -orientation_d_.coeffs();
             }
-            //ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << "\n" << orientation_d_target_.coeffs());
+            */
+
+            ROS_INFO_STREAM("new reference pose is" << position_d_target_.transpose() << "\n" << orientation_d_target_.coeffs());
     } //callback
 
     void CartesianImpedanceController::control_mode_callback(const std_msgs::Int16ConstPtr &msg) {

@@ -229,9 +229,11 @@ namespace force_control{
 	    Eigen::Map<Eigen::Matrix<double, 3, 1>> joint7_position(joint7.data() + 12, 3);
         Eigen::Map<Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
         Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
+		J = jacobian;
 	    Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian_j7(jac_j7.data());
         Eigen::Map<Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
         Eigen::Map<Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
+		dq_ = dq;
         Eigen::Map<Eigen::Matrix<double, 7, 7>> M(mass.data());
         Eigen::Map<Eigen::Matrix<double, 7, 1>> tau_J_d(  // NOLINT (readability-identifier-naming)
                 robot_state.tau_J_d.data());
@@ -240,7 +242,6 @@ namespace force_control{
         Eigen::Quaterniond orientation(transform.rotation());
 
         Lambda = (jacobian * M.inverse() * jacobian.transpose()).inverse();
-        T = Lambda; // let robot behave with it's own physical inertia (How can we change the physical inertia and what does it mean?)
         // position error
         error.head(3) << position - position_d_;
 	    //Clamp the vector to a certain step size to not get infinite torques when goal is far away
@@ -264,9 +265,6 @@ namespace force_control{
 	    double rotationUpperBound = 0.25 * 20/K(3,3);
 	    // Apply clamping
 	    error.tail(3) = error.tail(3).cwiseMax(rotationLowerBound).cwiseMin(rotationUpperBound);
-		error.tail(3).z() *= 3; //let the last joint move faster (z)
-
-
         //only add movable degrees of freedom and only add when not free-floating and also do not add when in safety bubble
         I_error +=  dt * Sm * (1-control_mode) * integrator_weights.cwiseProduct(error);
         for (int i = 0; i < 6; i++){
@@ -307,52 +305,27 @@ namespace force_control{
 		    F_repulsion.head(3) = repulsion_K * penetration_depth * r/(r.norm()) - repulsion_D * v;
 		    if (min_index == 1){
 			    //use joint 7 jacobian if joint 7 is detected as nearest
-			    tau_repulsion = 0.1 * (jacobian_j7.transpose() * F_repulsion) + 0.9 * tau_repulsion; // EMA for repulsive tau
+			    tau_repulsion = 0.3 * (jacobian_j7.transpose() * F_repulsion) + 0.7 * tau_repulsion; // EMA for repulsive tau
 		    }
 		    else {
-			    tau_repulsion = 0.1 * (jacobian.transpose() * F_repulsion) + 0.9 * tau_repulsion; //EMA for repulsive tau
+			    tau_repulsion = 0.3 * (jacobian.transpose() * F_repulsion) + 0.7 * tau_repulsion; //EMA for repulsive tau
 		    }
 
 	    }
-	    else{ tau_repulsion = 0.3 * 0 * tau_repulsion + 0.7 * tau_repulsion; } //command smooth slowdown
+	    //else{ tau_repulsion = 0.3 * 0 * tau_repulsion + 0.7 * tau_repulsion; } //command smooth slowdown
 
 
 	    // adapt damping
-	    D = 2.2 * K.cwiseSqrt() * Lambda.cwiseMax(0.0).diagonal().cwiseSqrt().asDiagonal(); // D = 2*sqrt(K*M)
-		//TODO: plot integrator Force, F_impedance and Manipulability ellipsoid
+	    D = 2.2 * K.cwiseSqrt() * Lambda.diagonal().cwiseSqrt().asDiagonal(); // D = 2*sqrt(K*M)
 	    F_impedance = -1 * (D * (jacobian * dq - velocity_d_) + K * error + I_error) ;
 		//full impedance control law
 
-		//Singularity avoidance
-		double V, m, m0, k;
-		m0 = 0.0; k = 2.5;
-		m = std::sqrt((jacobian*jacobian.transpose()).determinant());
-		V = k * (m - m0) * (m - m0);
-		//std::cout << "Potential is " << V << " and q is " << q.transpose() << "\n";
-		/**
-		//Nullspace projection did not work as expected
-	    Eigen::Matrix<double, 6, 1> F_imp_pos, F_imp_or;
-	    //F_imp_pos.head(3) = F_impedance.head(3); F_imp_pos.tail(3) << 0, 0, 0;
-	    //F_imp_or.tail(3) = F_impedance.tail(3); F_imp_or.head(3) << 0, 0, 0;
-
-
-        // nullspace PD control with damping ratio = 1
-	    // Extract the top half (3x7 matrix)
-	    positional_jacobian = jacobian.block<3, 7>(0, 0); //extract positional jacobian
-	    pseudoInverse(positional_jacobian.transpose(), Jp_T_pinv);
-
-	    N = Eigen::MatrixXd::Identity(7, 7) - positional_jacobian.transpose() * Jp_T_pinv;
-	    pseudoInverse(N, N_pinv);
-		**/
-
-		N = Eigen::MatrixXd::Identity(7, 7) - jacobian.transpose() * jacobian_transpose_pinv;
+		N = Eigen::MatrixXd::Identity(7,   7) - jacobian.transpose() * jacobian_transpose_pinv;
 		tau_nullspace << N *(nullspace_stiffness_ * (q_d_nullspace_ - q) - //control to neutral configuration
 						  (2.0 * sqrt(nullspace_stiffness_)) * dq);  // if config control ) false we don't care about the joint positions
-	    tau_nullspace = tau_nullspace.cwiseProduct(nullspace_weights); //weigh different joint differently
+	    //tau_nullspace = tau_nullspace.cwiseProduct(nullspace_weights); //weigh different joint differently
 
-		//tau_nullspace << N * -(A * q.cwiseProduct(q) + B * q + c);
-
-        tau_impedance = jacobian.transpose() * Sm * (F_impedance + F_potential) + jacobian.transpose() * Sf * F_cmd; //first priority task
+        tau_impedance = jacobian.transpose() * Sm * (F_impedance) /* + F_potential) + jacobian.transpose() * Sf * F_cmd*/; //first priority tasks
         tau_d << tau_impedance + tau_nullspace + tau_repulsion + coriolis; //add nullspace and coriolis components to desired torque
         tau_d << saturateTorqueRate(tau_d, tau_J_d);  // Saturate torque rate to avoid discontinuities
         for (size_t i = 0; i < 7; ++i) {
